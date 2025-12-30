@@ -22,7 +22,7 @@ This project implements a role-based Flask web application where:
 
 ## Technologies Used
 
-- **Python 3.x**
+- **Python 3.12
 - **Flask** — web framework
 - **pymongo / MongoDB** — data storage for users, feedback, and blockchain
 - **Bootstrap 5** — UI styling (via CDN)
@@ -87,15 +87,3 @@ Notes:
 - [requirements.txt](requirements.txt) — Python dependencies
 - templates/ — Jinja2 HTML templates
 
-## Next Steps / For Your GitHub Profile
-
-- Add a short project description and screenshots to this `README.md`.
-- Add a `LICENSE` and `CONTRIBUTING.md` if you intend to make the repo public.
-- Add a small `Demo.md` or GIF showing the workflow (login → submit feedback → verify chain).
-
----
-
-If you want, I can also:
-- add screenshots or a demo GIF,
-- add a `Dockerfile` and `docker-compose.yml` for easy deployment, or
-- create a short `CONTRIBUTING.md` and `LICENSE`.
