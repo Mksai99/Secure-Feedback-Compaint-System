@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row fade-in">
+  <div class="col-12">
+    <div class="glass-card p-4">
+      <h3 class="mb-3">
+        <i class="bi bi-chat-square-dots"></i> Feedback Received
+      </h3>
+      <p class="text-secondary small mb-4">
+        Student identities are hidden. Use this feedback to improve teaching.
+      </p>
+
+      {% if feedbacks %}
+        <div class="table-responsive">
+          <table class="table table-dark table-striped table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Course</th>
+                <th>Knowledge</th>
+                <th>Communication</th>
+                <th>Punctuality</th>
+                <th>Support</th>
+                <th>Avg Rating</th>
+                <th>Comments</th>
+                <th>Submitted At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fb in feedbacks %}
+                <tr>
+                  <td>{{ fb.course or "-" }}</td>
+                  <td>{{ fb.knowledge }}</td>
+                  <td>{{ fb.communication }}</td>
+                  <td>{{ fb.punctuality }}</td>
+                  <td>{{ fb.support }}</td>
+                  <td>
+                    <span class="badge bg-info">
+                      {{ fb.avg }} / 5
+                    </span>
+                  </td>
+                  <td>{{ fb.comments }}</td>
+                  <td class="text-secondary small">{{ fb.created_at }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p>No feedback received yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4 fade-in">
+  <!-- Status card -->
+  <div class="col-lg-4">
+    <div class="glass-card p-4 h-100">
+      <h5 class="mb-3">
+        <i class="bi bi-activity"></i> System Status
+      </h5>
+      <p>
+        Blockchain integrity:
+        {% if chain_valid %}
+          <span class="badge bg-success">
+            <i class="bi bi-check-circle"></i> VALID
+          </span>
+        {% else %}
+          <span class="badge bg-danger">
+            <i class="bi bi-x-circle"></i> INVALID
+          </span>
+        {% endif %}
+      </p>
+      <p class="text-secondary small mb-0">
+        Any tampering in stored feedback will break this chain.
+      </p>
+    </div>
+  </div>
+
+  <!-- Add users -->
+  <div class="col-lg-4">
+    <div class="glass-card p-4 h-100">
+      <h5 class="mb-3">
+        <i class="bi bi-person-badge"></i> Add Faculty
+      </h5>
+      <form action="/admin/add-faculty" method="post">
+        <div class="mb-2">
+          <label class="form-label">Username</label>
+          <input type="text" name="username" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" name="password" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-outline-info w-100">
+          <i class="bi bi-plus-circle"></i> Create Faculty
+        </button>
+      </form>
+
+      <hr class="my-4" />
+
+      <h5 class="mb-3">
+        <i class="bi bi-mortarboard"></i> Add Student
+      </h5>
+      <form action="/admin/add-student" method="post">
+        <div class="mb-2">
+          <label class="form-label">Username</label>
+          <input type="text" name="username" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" name="password" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-outline-success w-100">
+          <i class="bi bi-plus-circle"></i> Create Student
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Faculty list -->
+  <div class="col-lg-4">
+    <div class="glass-card p-4 h-100">
+      <h5 class="mb-3">
+        <i class="bi bi-people"></i> Faculty List
+      </h5>
+      {% if faculty_list %}
+        <ul class="list-group list-group-flush">
+          {% for f in faculty_list %}
+            <li class="list-group-item bg-transparent text-light border-secondary d-flex justify-content-between align-items-center">
+              <span>
+                <i class="bi bi-person-circle"></i> {{ f.username }}
+              </span>
+              <form
+                action="/admin/delete-faculty/{{ f.username }}"
+                method="post"
+                onsubmit="return confirm('Remove faculty {{ f.username }}?');"
+              >
+                <button class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i> Remove
+                </button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-secondary small">No faculty added yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4 fade-in">
+  <div class="col-12">
+    <div class="glass-card p-4">
+      <h5 class="mb-3">
+        <i class="bi bi-chat-square-dots"></i> All Feedback (Anonymous)
+      </h5>
+
+      {% if feedbacks %}
+        <div class="table-responsive">
+          <table class="table table-dark table-striped table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Faculty</th>
+                <th>Course</th>
+                <th>Knowledge</th>
+                <th>Communication</th>
+                <th>Punctuality</th>
+                <th>Support</th>
+                <th>Avg Rating</th>
+                <th>Comments</th>
+                <th>Submitted At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fb in feedbacks %}
+                <tr>
+                  <td>{{ fb.faculty_username }}</td>
+                  <td>{{ fb.course or "-" }}</td>
+                  <td>{{ fb.knowledge }}</td>
+                  <td>{{ fb.communication }}</td>
+                  <td>{{ fb.punctuality }}</td>
+                  <td>{{ fb.support }}</td>
+                  <td>
+                    <span class="badge bg-info">{{ fb.avg }} / 5</span>
+                  </td>
+                  <td>{{ fb.comments }}</td>
+                  <td class="text-secondary small">{{ fb.created_at }}</td>
+                  <td>
+                    <form
+                      action="/admin/delete-feedback/{{ fb.id }}"
+                      method="post"
+                      onsubmit="return confirm('Remove this feedback entry?');"
+                    >
+                      <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p>No feedback yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
