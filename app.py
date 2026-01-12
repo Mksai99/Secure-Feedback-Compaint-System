@@ -1,51 +1,15 @@
 from flask import Flask, render_template, request, redirect, session, url_for
-<<<<<<< HEAD
 import json
-=======
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
 from datetime import datetime
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import hashlib
-<<<<<<< HEAD
 from cryptography.fernet import Fernet
 import os
-=======
-import json
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
 
 app = Flask(__name__)
 app.secret_key = "any_random_long_secret_here"
 
-<<<<<<< HEAD
-# ---------- Security / Encryption ----------
-# In production, set ENCRYPTION_KEY in environment variables.
-ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY")
-if not ENCRYPTION_KEY:
-    # For demo/dev: generate a key if not provided
-    ENCRYPTION_KEY = Fernet.generate_key()
-    print(f"WARNING: ENCRYPTION_KEY not set. Using ephemeral key: {ENCRYPTION_KEY.decode()}")
-else:
-    # Ensure it's bytes
-    if isinstance(ENCRYPTION_KEY, str):
-        ENCRYPTION_KEY = ENCRYPTION_KEY.encode()
-
-cipher = Fernet(ENCRYPTION_KEY)
-
-def encrypt_data(plaintext: str) -> str:
-    """Encrypts a plaintext string and returns a hex or base64 string."""
-    if not plaintext: 
-        return ""
-    return cipher.encrypt(plaintext.encode()).decode()
-
-def decrypt_data(token: str) -> str:
-    """Decrypts a token string back to plaintext."""
-    if not token:
-        return ""
-    return cipher.decrypt(token.encode()).decode()
-
-=======
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
 # ---------- MongoDB ----------
 MONGO_URI = "mongodb://localhost:27017/"
 client = MongoClient(MONGO_URI)
@@ -55,17 +19,14 @@ db = client["feedback_blockchain_db"]
 students_col = db["students"]     # {username, password, role="student"}
 faculty_col = db["faculty"]       # {username, password, role="faculty"}
 admins_col = db["admins"]         # {username, password, role="admin"}
-<<<<<<< HEAD
 authority_col = db["authority"]   # {username, password, role="authority"} -- NEW
 
 feedback_col = db["feedback"]     # feedback documents
 blocks_col = db["blocks"]         # blockchain
 audit_col = db["audit_logs"]      # audit logs -- NEW
-=======
 
 feedback_col = db["feedback"]     # feedback documents
 blocks_col = db["blocks"]         # blockchain
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
 
 # secret salt for student anonymity
 ANON_SALT = "some_fixed_random_salt"
@@ -85,7 +46,6 @@ def create_default_admin():
             "role": "admin"
         })
 
-<<<<<<< HEAD
 def create_default_authority():
     """Create default authority user if none exists."""
     if authority_col.count_documents({"role": "authority"}) == 0:
@@ -94,9 +54,6 @@ def create_default_authority():
             "password": "auth123",  # demo only
             "role": "authority"
         })
-
-=======
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
 
 def get_last_block():
     last_block = blocks_col.find_one(sort=[("idx", -1)])
@@ -296,11 +253,8 @@ def login():
             col = faculty_col
         elif role == "admin":
             col = admins_col
-<<<<<<< HEAD
         elif role == "authority":
             col = authority_col
-=======
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
         else:
             col = None
 
@@ -315,11 +269,8 @@ def login():
                 return redirect(url_for("student_feedback"))
             elif role == "faculty":
                 return redirect(url_for("faculty_feedbacks"))
-<<<<<<< HEAD
             elif role == "authority":
                 return redirect(url_for("authority_dashboard"))
-=======
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
             else:
                 return redirect(url_for("admin_dashboard"))
         else:
@@ -380,15 +331,10 @@ def student_feedback():
                 "support": rating_support,
             },
             "average_rating": avg_rating,
-<<<<<<< HEAD
-            "average_rating": avg_rating,
             "deleted": False,   # for soft delete
             # --- NEW: Controlled Anonymity Fields ---
             "encrypted_student_id": encrypt_data(student_username),
             "reveal_status": "sealed",  # sealed | revealed
-=======
-            "deleted": False,   # for soft delete
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
         }
 
         result = feedback_col.insert_one(fb_doc)
@@ -544,7 +490,6 @@ def admin_delete_feedback(feedback_id):
     return redirect(url_for("admin_dashboard"))
 
 
-<<<<<<< HEAD
 # ----- Authority -----
 @app.route("/authority")
 @login_required(role="authority")
@@ -597,9 +542,9 @@ def authority_reveal(feedback_id):
     if not fb:
         return "Feedback not found", 404
 
-    # Check if already revealed? Even if yes, we can reveal again or just show it. 
+    # Check if already revealed? Even if yes, we can reveal again or just show it.
     # But we update status.
-    
+
     # Decrypt
     encrypted_id = fb.get("encrypted_student_id")
     real_identity = "Unknown (Legacy)"
@@ -653,9 +598,4 @@ def authority_audit_logs():
 if __name__ == "__main__":
     create_default_admin()
     create_default_authority()
-=======
-# ---------- Main ----------
-if __name__ == "__main__":
-    create_default_admin()
->>>>>>> 5acd5a61338ba1820b88e14296a8cb0483da74c0
     app.run(debug=True)
