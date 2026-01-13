@@ -2,30 +2,29 @@
 {% block content %}
 <div class="row justify-content-center fade-in">
     <div class="col-md-8 col-lg-6">
-        <div class="glass-card p-5 text-center border-danger">
+        <div class="card-custom p-5 text-center border-danger shadow-sm">
             <div class="mb-4">
                 <i class="bi bi-eye-fill display-1 text-danger"></i>
             </div>
 
-            <h2 class="mb-3 text-uppercase text-danger">Identity Revealed</h2>
+            <h2 class="mb-3 text-uppercase text-danger fw-bold">Identity Revealed</h2>
             <p class="text-secondary mb-4">You have successfully decrypted the identity for feedback ID: <br><code
-                    class="text-light">{{ feedback_id }}</code></p>
+                    class="text-dark bg-light px-2 py-1 rounded">{{ feedback_id }}</code></p>
 
-            <div class="card bg-dark border-secondary mb-4">
+            <div class="card bg-danger-subtle border-danger mb-4">
                 <div class="card-body">
-                    <h5 class="card-title text-secondary small text-uppercase">Student Identity (Username)</h5>
-                    <h3 class="display-6 text-warning font-monospace">{{ real_identity }}</h3>
+                    <h5 class="card-title text-danger small text-uppercase fw-bold">Student Identity (Username)</h5>
+                    <h3 class="display-6 text-dark font-monospace">{{ real_identity }}</h3>
                 </div>
             </div>
 
-            <div class="alert alert-dark text-start">
-                <small class="text-secondary"><i class="bi bi-info-circle"></i> <strong>Audit Record
+            <div class="alert alert-secondary text-start border bg-light">
+                <small class="text-muted"><i class="bi bi-info-circle-fill"></i> <strong>Audit Record
                         Created:</strong></small>
-                <br>
-                <small>Reason: "{{ reason }}"</small>
+                <div class="mt-1 small">Reason: "{{ reason }}"</div>
             </div>
 
-            <a href="/authority" class="btn btn-outline-light mt-3">
+            <a href="/authority" class="btn btn-outline-primary mt-3">
                 <i class="bi bi-arrow-left"></i> Return to Authority Dashboard
             </a>
         </div>

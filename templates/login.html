@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row justify-content-center fade-in">
+<div class="row justify-content-center">
   <div class="col-md-6 col-lg-4">
-    <div class="glass-card p-4">
-      <h3 class="mb-3 text-center">
-        <i class="bi bi-box-arrow-in-right"></i> Login
-      </h3>
+    <div class="card-custom p-4 mt-5">
+      <div class="text-center mb-4">
+        <i class="bi bi-shield-lock text-primary-custom" style="font-size: 2.5rem;"></i>
+        <h3 class="mt-2 text-primary-custom">Welcome Back</h3>
+        <p class="text-muted small">Secure, Anonymous, Verified.</p>
+      </div>
 
       {% if error %}
-      <div class="alert alert-danger py-2">
+      <div class="alert alert-danger py-2 small">
         <i class="bi bi-exclamation-triangle"></i> {{ error }}
       </div>
       {% endif %}
@@ -20,7 +22,7 @@
             <span class="input-group-text">
               <i class="bi bi-person"></i>
             </span>
-            <input type="text" name="username" class="form-control" required />
+            <input type="text" name="username" class="form-control" placeholder="Enter your ID" required />
           </div>
         </div>
 
@@ -30,13 +32,14 @@
             <span class="input-group-text">
               <i class="bi bi-lock"></i>
             </span>
-            <input type="password" name="password" class="form-control" required />
+            <input type="password" name="password" class="form-control" placeholder="••••••••" required />
           </div>
         </div>
 
         <div class="mb-4">
-          <label class="form-label">Role</label>
+          <label class="form-label">Select Role</label>
           <select name="role" class="form-select" required>
+            <option value="" disabled selected>Choose your role...</option>
             <option value="student">Student</option>
             <option value="faculty">Faculty</option>
             <option value="admin">Admin</option>
@@ -44,10 +47,14 @@
           </select>
         </div>
 
-        <button type="submit" class="btn btn-info w-100">
-          <i class="bi bi-arrow-right-circle"></i> Continue
+        <button type="submit" class="btn btn-primary w-100">
+          Sign In <i class="bi bi-arrow-right-circle ms-1"></i>
         </button>
       </form>
+    </div>
+
+    <div class="text-center mt-3 text-muted small">
+      Protected by Blockchain & Privacy Protocols
     </div>
   </div>
 </div>

@@ -31,6 +31,39 @@ blocks_col = db["blocks"]         # blockchain
 # secret salt for student anonymity
 ANON_SALT = "some_fixed_random_salt"
 
+# ---------- Encryption Setup ----------
+KEY_FILE = "secret.key"
+
+def load_key():
+    """Load the previously generated key if exists, else generate new."""
+    if os.path.exists(KEY_FILE):
+        with open(KEY_FILE, "rb") as f:
+            return f.read()
+    else:
+        key = Fernet.generate_key()
+        with open(KEY_FILE, "wb") as f:
+            f.write(key)
+        return key
+
+metrics_key = load_key()
+cipher_suite = Fernet(metrics_key)
+
+def encrypt_data(data: str) -> str:
+    """Encrypts a string and returns a string token."""
+    if not data:
+        return ""
+    # Fernet encrypt expects bytes, returns bytes
+    token = cipher_suite.encrypt(data.encode("utf-8"))
+    return token.decode("utf-8")
+
+def decrypt_data(token: str) -> str:
+    """Decrypts a string token and returns original string."""
+    if not token:
+        return ""
+    # Fernet decrypt expects bytes
+    data_bytes = cipher_suite.decrypt(token.encode("utf-8"))
+    return data_bytes.decode("utf-8")
+
 
 # ---------- Helpers ----------
 def sha256(text: str) -> str:

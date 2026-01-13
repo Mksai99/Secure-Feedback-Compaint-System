@@ -1,0 +1,329 @@
+/* 
+   Secure Feedback System - Institutional Light Theme 
+   Colors:
+   - Bg: #F7F9FC
+   - Primary: #1F3A8A (Deep Blue)
+   - Secondary: #0F766E (Muted Teal)
+   - Text: #1F2937 (Dark Gray)
+*/
+
+:root {
+    --bg-body: #F7F9FC;
+    --bg-surface: #FFFFFF;
+    --bg-sidebar: #FFFFFF;
+    --primary-color: #1F3A8A;
+    --primary-hover: #1e3a8a;
+    /* slightly darker or similar */
+    --secondary-color: #0F766E;
+    --text-main: #1F2937;
+    --text-muted: #6B7280;
+    --border-color: #E2E8F0;
+
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --error-color: #EF4444;
+    --info-color: #3B82F6;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    --radius-md: 0.5rem;
+    --radius-lg: 1rem;
+}
+
+body {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+a {
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+/* --- Layout Structure --- */
+
+.app-container {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+@media (min-width: 992px) {
+    .app-container {
+        flex-direction: row;
+    }
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    width: 100%;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+}
+
+@media (min-width: 992px) {
+    .sidebar {
+        width: 260px;
+        min-height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+    }
+
+    /* Only apply margin if sidebar is present */
+    .layout-with-sidebar .main-content {
+        margin-left: 260px;
+    }
+
+    .layout-with-sidebar .main-content {
+        padding: 2rem;
+    }
+
+    /* When no sidebar, center content or keep default */
+    .main-content {
+        margin-left: 0;
+        padding: 2rem;
+        width: 100%;
+    }
+}
+
+.sidebar-header {
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--bg-body);
+}
+
+.brand-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    color: var(--text-muted);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background-color: #EFF6FF;
+    /* very light blue */
+    color: var(--primary-color);
+}
+
+.nav-link i {
+    font-size: 1.1rem;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 1.5rem;
+}
+
+/* --- Components --- */
+
+/* Cards using standard Bootstrap override or custom class */
+.card-custom,
+.glass-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+    /* Resetting previous glass-card specific styles */
+    backdrop-filter: none;
+    color: var(--text-main);
+}
+
+.card-custom:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #172a6e;
+    border-color: #172a6e;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 1rem;
+    background-color: #fff;
+    color: var(--text-main);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(31, 58, 138, 0.15);
+}
+
+.input-group-text {
+    background-color: #F8FAFC;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+}
+
+/* Tables */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+}
+
+.table thead th {
+    background-color: #F8FAFC;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+}
+
+.table tbody td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(249, 250, 251, 0.5);
+    /* very subtle stripe */
+}
+
+.table-hover tbody tr:hover {
+    background-color: #EFF6FF;
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+    border-radius: 9999px;
+}
+
+.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.bg-warning {
+    background-color: var(--warning-color) !important;
+    color: #fff;
+}
+
+.bg-danger {
+    background-color: var(--error-color) !important;
+}
+
+.bg-info {
+    background-color: var(--info-color) !important;
+}
+
+/* Alerts */
+.alert {
+    border-radius: var(--radius-md);
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Star Rating (Keeping logic, updating colors) */
+.star-rating label {
+    color: #CBD5E1;
+    /* Light gray for unchecked */
+}
+
+.star-rating label:hover,
+.star-rating label:hover~label {
+    color: #FBBF24;
+}
+
+.star-rating input:checked~label {
+    color: #F59E0B;
+}
+
+/* Utility */
+.text-primary-custom {
+    color: var(--primary-color) !important;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Login/Auth Specific */
+.auth-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+}

@@ -1,114 +1,83 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="row justify-content-center fade-in">
-  <div class="col-lg-7">
-    <div class="glass-card p-4 p-lg-5">
-      <h3 class="mb-3">
+  <div class="col-lg-8">
+    <div class="card-custom p-4 p-md-5">
+      <h3 class="mb-3 text-primary-custom">
         <i class="bi bi-journal-text"></i> Give Feedback
       </h3>
-      <p class="text-secondary small mb-4">
-        Your identity is anonymized and never shown to faculty or admin.
-      </p>
+      <div class="alert alert-info border-0 bg-opacity-10 d-flex align-items-center">
+        <i class="bi bi-shield-check me-2 fs-5"></i>
+        <span>Your identity is <strong>anonymized</strong> and never shown to faculty or admin.</span>
+      </div>
 
-      <form action="/student/feedback" method="post">
-        <div class="mb-3">
-          <label class="form-label">Select Faculty</label>
+      <form action="/student/feedback" method="post" class="mt-4">
+        <div class="mb-4">
+          <label class="form-label fw-bold">Select Faculty</label>
           <select name="faculty_username" class="form-select" required>
-            <option value="" disabled selected>Choose faculty</option>
+            <option value="" disabled selected>Choose faculty member...</option>
             {% for f in faculty_list %}
-              <option value="{{ f.username }}">{{ f.username }}</option>
+            <option value="{{ f.username }}">{{ f.username }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label">Course (optional)</label>
-          <input
-            type="text"
-            name="course"
-            class="form-control"
-            placeholder="e.g. Data Structures"
-          />
+        <div class="mb-4">
+          <label class="form-label fw-bold">Course <span class="text-muted fw-normal">(Optional)</span></label>
+          <input type="text" name="course" class="form-control" placeholder="e.g. Data Structures (CS101)" />
         </div>
 
-        <!-- Rating criteria -->
-        <div class="mb-3">
-          <label class="form-label d-block">Subject Knowledge</label>
-          <div class="star-rating">
-            {% for val in [5,4,3,2,1] %}
-              <input
-                type="radio"
-                id="knowledge-{{ val }}"
-                name="rating_knowledge"
-                value="{{ val }}"
-                {% if val == 5 %}required{% endif %}
-              />
+        <div class="row mb-4">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Subject Knowledge</label>
+            <div class="star-rating">
+              {% for val in [5,4,3,2,1] %}
+              <input type="radio" id="knowledge-{{ val }}" name="rating_knowledge" value="{{ val }}" {% if val==5
+                %}required{% endif %} />
               <label for="knowledge-{{ val }}">&#9733;</label>
-            {% endfor %}
+              {% endfor %}
+            </div>
           </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label d-block">Communication</label>
-          <div class="star-rating">
-            {% for val in [5,4,3,2,1] %}
-              <input
-                type="radio"
-                id="communication-{{ val }}"
-                name="rating_communication"
-                value="{{ val }}"
-                {% if val == 5 %}required{% endif %}
-              />
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Communication</label>
+            <div class="star-rating">
+              {% for val in [5,4,3,2,1] %}
+              <input type="radio" id="communication-{{ val }}" name="rating_communication" value="{{ val }}" {% if
+                val==5 %}required{% endif %} />
               <label for="communication-{{ val }}">&#9733;</label>
-            {% endfor %}
+              {% endfor %}
+            </div>
           </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label d-block">Punctuality</label>
-          <div class="star-rating">
-            {% for val in [5,4,3,2,1] %}
-              <input
-                type="radio"
-                id="punctuality-{{ val }}"
-                name="rating_punctuality"
-                value="{{ val }}"
-                {% if val == 5 %}required{% endif %}
-              />
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Punctuality</label>
+            <div class="star-rating">
+              {% for val in [5,4,3,2,1] %}
+              <input type="radio" id="punctuality-{{ val }}" name="rating_punctuality" value="{{ val }}" {% if val==5
+                %}required{% endif %} />
               <label for="punctuality-{{ val }}">&#9733;</label>
-            {% endfor %}
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Student Support</label>
+            <div class="star-rating">
+              {% for val in [5,4,3,2,1] %}
+              <input type="radio" id="support-{{ val }}" name="rating_support" value="{{ val }}" {% if val==5
+                %}required{% endif %} />
+              <label for="support-{{ val }}">&#9733;</label>
+              {% endfor %}
+            </div>
           </div>
         </div>
 
         <div class="mb-4">
-          <label class="form-label d-block">Student Support</label>
-          <div class="star-rating">
-            {% for val in [5,4,3,2,1] %}
-              <input
-                type="radio"
-                id="support-{{ val }}"
-                name="rating_support"
-                value="{{ val }}"
-                {% if val == 5 %}required{% endif %}
-              />
-              <label for="support-{{ val }}">&#9733;</label>
-            {% endfor %}
-          </div>
+          <label class="form-label fw-bold">Comments</label>
+          <textarea name="comments" rows="4" class="form-control"
+            placeholder="Write your honest, constructive feedback here..." required></textarea>
         </div>
 
-        <div class="mb-4 mt-2">
-          <label class="form-label">Comments</label>
-          <textarea
-            name="comments"
-            rows="4"
-            class="form-control"
-            placeholder="Write your honest feedback here..."
-            required
-          ></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-success w-100">
-          <i class="bi bi-send"></i> Submit Feedback
+        <button type="submit" class="btn btn-primary w-100 py-2">
+          <i class="bi bi-send-fill text-white"></i> Submit Securely
         </button>
       </form>
     </div>
