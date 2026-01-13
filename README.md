@@ -1,89 +1,85 @@
-# Secure Feedback System (Blockchain-backed)
+# Secure Feedback System (Blockchain-Backed)
 
-## Project Name
+A secure, anonymous, and verifiable student feedback system built with **Flask**, **MongoDB**, and **Hash-Based Blockchain** Technology. This system ensures that student feedback is tamper-proof while maintaining controlled anonymity, which can be revealed only by authorized personnel under specific conditions with audit logging.
 
-Secure Feedback System (Blockchain-backed)
+## 🚀 Key Features
 
-## Idea
+### 🔐 Security & Integrity
+- **Blockchain Verification**: Every feedback submission is linked to the previous one via SHA-256 hashing. Any modification to past feedback invalidates the entire chain, detectable via the Admin Dashboard.
+- **Controlled Anonymity**: Student identities are encrypted using Fernet (AES). Faculty and Admins cannot see who sent the feedback.
+- **Identity Reveal Protocol**: Only the `Authority` role can decrypt a student's identity, and **every reveal is logged** in an immutable audit ledger with a mandatory reason.
 
-Build a simple web app to collect student feedback while preserving anonymity and ensuring tamper-evidence by recording each feedback as a block in a lightweight blockchain stored in MongoDB.
+### 👥 Role-Based Access Control
+The system features four distinct roles:
+1. **Student**: Can submit anonymous feedback for faculty.
+2. **Faculty**: Can view feedback received for their courses.
+3. **Admin**: Manages users (Faculty/Students), deletes feedback (soft delete), and monitors blockchain integrity.
+4. **Authority**: A special oversight role that can audit feedback and reveal identities in cases of policy violations (e.g., harassment).
 
-## Problem Statement
+### 🎨 Modern UI/UX
+- **Institutional Design**: A clean, light-first professional interface using a deep blue and teal color palette.
+- **Responsive Layout**: Features a collapsible sidebar for easy navigation on all devices.
+- **User-Friendly**: Clear visual indicators for blockchain status, audit logs, and feedback ratings.
 
-Traditional feedback systems are vulnerable to tampering and may expose student identities. Institutions need a simple way to collect honest feedback while maintaining student anonymity and a verifiable audit trail that detects edits or deletions.
+---
 
-## Solution
+## 🛠️ Technology Stack
+- **Backend**: Python (Flask)
+- **Database**: MongoDB (Local)
+- **Frontend**: HTML5, CSS3, Bootstrap 5 (Custom "Institutional" Theme)
+- **Cryptography**: `hashlib` (SHA-256), `cryptography` (Fernet)
 
-This project implements a role-based Flask web application where:
-- Students submit anonymous feedback (anonymized via a salted hash).
-- Each feedback entry is stored in MongoDB and a corresponding block is appended to a local blockchain collection, linking blocks by hashes to make tampering detectable.
-- Faculty can view feedback about themselves without seeing student identities.
-- Admins can manage users and verify the integrity of the stored chain.
+---
 
-## Technologies Used
+## ⚙️ Installation & Setup
 
-- **Python 3.12
-- **Flask** — web framework
-- **pymongo / MongoDB** — data storage for users, feedback, and blockchain
-- **Bootstrap 5** — UI styling (via CDN)
+### Prerequisites
+- Python 3.8+
+- MongoDB (Running locally on default port `27017`)
 
-Refer to dependencies in [requirements.txt](requirements.txt).
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Mksai99/Secure-Feedback-System.git
+cd Secure-Feedback-System
+```
 
-## Methodology
-
-1. Role-based authentication (student, faculty, admin).
-2. Students submit feedback with ratings + comments. The app computes an anonymized `student_hash` by hashing the username with a fixed salt.
-3. Feedback is inserted into the `feedback` collection in MongoDB.
-4. A block is created using a deterministic JSON of the feedback, hashed (SHA-256) and linked to the previous block hash. Blocks are stored in the `blocks` collection and a `chain_meta` collection keeps head/total information.
-5. Admins can run a verification routine that recalculates data hashes and block hashes and validates the chain meta to detect tampering or edits.
-
-Files of interest:
-- [app.py](app.py)
-- Templates: [templates/base.html](templates/base.html), [templates/login.html](templates/login.html), [templates/student_feedback.html](templates/student_feedback.html), [templates/faculty_feedbacks.html](templates/faculty_feedbacks.html), [templates/admin_dashboard.html](templates/admin_dashboard.html)
-
-## Advantages
-
-- Student anonymity: identities replaced by a salted hash so feedback stays private.
-- Tamper-evidence: blockchain-style linking of feedback detects edits or deletions.
-- Lightweight and self-contained: uses MongoDB collections (no external blockchain network required).
-- Role-based UX: separate views & permissions for students, faculty, and admins.
-
-## Upgradations (Future Improvements)
-
-- Replace fixed salt with per-instance configuration or use HSM for secure salts.
-- Use proper password hashing (bcrypt/argon2) and registration flow instead of storing plaintext demo passwords.
-- Add email verification and password reset flows.
-- Add pagination, search and export (CSV/PDF) for admin reports.
-- Integrate digital signatures for stronger non-repudiation guarantees.
-- Add automated tests and a CI pipeline, containerization (`Dockerfile`) and deployment docs.
-- Support remote hosted MongoDB (Atlas) with secure credentials from environment variables.
-
-## How to Run (local development)
-
-1. Ensure MongoDB is running locally (default on `mongodb://localhost:27017/`).
-2. Create and activate a Python virtual environment.
-
-```powershell
-python -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
+### 2. Install Dependencies
+```bash
 pip install -r requirements.txt
 ```
 
-3. Start the Flask app:
-
-```powershell
+### 3. Run the Application
+```bash
 python app.py
 ```
+*Note: On the first run, a `secret.key` file will be generated for encryption. Keep this file secure.*
 
-4. Open `http://localhost:5000` in your browser.
+### 4. Access the App
+Open your browser and navigate to:
+`http://127.0.0.1:5000`
 
-Notes:
-- The app creates a default admin (`admin` / `admin123`) if no admin exists. Change credentials before production use.
-- For production, set `app.secret_key` securely and configure MongoDB credentials via environment variables.
+---
 
-## Project Structure
+## 👤 Default Credentials (for Demo)
+The application creates default users if they don't exist:
 
-- [app.py](app.py) — main Flask application and blockchain logic
-- [requirements.txt](requirements.txt) — Python dependencies
-- templates/ — Jinja2 HTML templates
+| Role | Username | Password |
+|------|----------|----------|
+| **Admin** | `admin` | `admin123` |
+| **Authority** | `authority` | `auth123` |
 
+*You can create Student and Faculty accounts via the Admin Dashboard.*
+
+---
+
+## 📸 Screenshots
+
+- **Login Page**: Secure entry point for all roles.
+- **Student Dashboard**: Simple star rating and comment form.
+- **Admin Dashboard**: System status indicators showing "Blockchain Valid/Invalid".
+- **Authority Console**: Audit logs and identity reveal interface.
+
+---
+
+## 🛡️ License
+This project is for educational and portfolio purposes.
