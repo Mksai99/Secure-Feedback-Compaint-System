@@ -1,86 +1,110 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row fade-in">
-  <div class="col-12 mb-4 d-flex justify-content-between align-items-center">
-    <h2 class="text-primary-custom">Authority Dashboard</h2>
-    <a href="/authority/audit-logs" class="btn btn-outline-primary">
-      <i class="bi bi-journal-text"></i> View Audit Logs
+<div class="fade-in">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Authority Oversight</h2>
+      <p class="text-muted">Feedback Auditing & Identity Management</p>
+    </div>
+    <a href="/authority/audit-logs" class="btn btn-outline-secondary">
+      <i class="bi bi-journal-check me-2"></i> View Audit Logs
     </a>
   </div>
 
-  <div class="col-12 mb-4">
-    <div class="alert alert-info border-info d-flex align-items-center">
-      <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-      <div>
-        <strong>Role Description:</strong> You have the authority to view feedback and request identity reveals for
-        valid reasons. All actions are audited. You cannot edit or delete feedback.
-      </div>
+  <div class="alert alert-light border shadow-sm d-flex align-items-center gap-3 mb-4 rounded-3">
+    <div class="bg-info-subtle text-info p-2 rounded-circle">
+      <i class="bi bi-shield-exclamation fs-5"></i>
+    </div>
+    <div>
+      <h6 class="fw-bold mb-1">Role Responsibility</h6>
+      <p class="mb-0 text-muted small">
+        You are authorized to audit feedback and request identity reveals only for valid, documented reasons.
+        All reveal actions are immutably logged in the audit trail.
+      </p>
     </div>
   </div>
 
-  <div class="col-12">
-    <div class="card-custom p-4">
-      <h5 class="mb-3 text-primary-custom">
-        <i class="bi bi-chat-square-dots"></i> Feedback Oversight
+  <div class="card-custom p-0 overflow-hidden">
+    <div class="p-4 border-bottom bg-light bg-opacity-50">
+      <h5 class="fw-bold mb-0 text-dark">
+        <i class="bi bi-search me-2"></i>Feedback Repository
       </h5>
+    </div>
 
+    <div class="p-0">
       {% if feedbacks %}
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-          <thead>
+          <thead class="bg-light">
             <tr>
-              <th>Faculty</th>
+              <th class="ps-4">Faculty</th>
               <th>Course</th>
-              <th>Ratings (K/C/P/S)</th>
-              <th>Avg</th>
-              <th>Comments</th>
-              <th>Submitted At</th>
-              <th>Status</th>
-              <th>Reveal Identity</th>
+              <th>Scores</th>
+              <th>Content</th>
+              <th>Submitted</th>
+              <th>Identity Status</th>
+              <th style="width: 250px;" class="pe-4 text-end">Identity Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for fb in feedbacks %}
             <tr>
-              <td class="fw-bold">{{ fb.faculty_username }}</td>
-              <td>{{ fb.course or "-" }}</td>
+              <td class="ps-4 fw-bold">{{ fb.faculty_username }}</td>
+              <td><span class="badge bg-light text-secondary border">{{ fb.course or "-" }}</span></td>
               <td>
-                <small class="text-muted">{{ fb.knowledge }}/{{ fb.communication }}/{{ fb.punctuality }}/{{ fb.support
-                  }}</small>
+                <span class="badge {{ 'bg-success' if fb.avg >= 4 else 'bg-warning' if fb.avg >= 3 else 'bg-danger' }}">
+                  Avg: {{ fb.avg }}
+                </span>
+                <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                  K:{{ fb.knowledge }} | C:{{ fb.communication }}
+                </div>
               </td>
-              <td>
-                <span class="badge bg-primary">{{ fb.avg }}</span>
+              <td style="max-width: 300px;">
+                <div class="text-wrap text-secondary small fst-italic">"{{ fb.comments }}"</div>
               </td>
-              <td><span class="small text-secondary">{{ fb.comments }}</span></td>
-              <td class="text-muted small">{{ fb.created_at }}</td>
+              <td class="text-muted small">{{ fb.created_at[:10] }}</td>
               <td>
                 {% if fb.reveal_status == 'revealed' %}
-                <span class="badge bg-danger">REVEALED</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                  <i class="bi bi-unlock-fill me-1"></i>REVEALED
+                </span>
                 {% else %}
-                <span class="badge bg-secondary">SEALED</span>
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                  <i class="bi bi-lock-fill me-1"></i>SEALED
+                </span>
                 {% endif %}
               </td>
-              <td>
-                {% if fb.reveal_status == 'revealed' %}
-                <span class="text-muted small d-block mb-1">Identity available in logs</span>
-                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
-                  data-bs-target="#revealForm{{ loop.index }}">
-                  View Again
-                </button>
-                {% else %}
-                <button class="btn btn-sm btn-outline-warning text-dark border-warning" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#revealForm{{ loop.index }}">
-                  <i class="bi bi-eye"></i> Request Reveal
-                </button>
-                {% endif %}
+              <td class="pe-4 text-end">
+                <div class="d-flex justify-content-end">
+                  {% if fb.reveal_status == 'revealed' %}
+                  <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#revealForm{{ loop.index }}">
+                    <i class="bi bi-eye text-muted"></i> View Details
+                  </button>
+                  {% else %}
+                  <button class="btn btn-sm btn-outline-warning text-dark border-warning-subtle hover-warning"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#revealForm{{ loop.index }}">
+                    <i class="bi bi-exclamation-triangle"></i> Request Reveal
+                  </button>
+                  {% endif %}
+                </div>
 
-                <div class="collapse mt-2" id="revealForm{{ loop.index }}">
-                  <div class="card card-body bg-light border p-3 shadow-sm">
+                <!-- Expanded Reveal Form -->
+                <div
+                  class="collapse mt-3 text-start position-absolute end-0 me-5 shadow-lg bg-white rounded-3 z-3 border"
+                  style="width: 300px; margin-top: 10px !important;" id="revealForm{{ loop.index }}">
+                  <div class="p-3">
+                    <h6 class="fw-bold mb-2 small text-danger">Authorize Identity Reveal</h6>
                     <form action="/authority/reveal/{{ fb.id }}" method="post">
-                      <label class="form-label small text-danger fw-bold">Reason for Reveal (Mandatory)</label>
-                      <input type="text" name="reason" class="form-control form-control-sm mb-2"
-                        placeholder="e.g. Harassment policy violation..." required>
-                      <button type="submit" class="btn btn-sm btn-danger w-100">Confirm Reveal</button>
+                      <div class="mb-2">
+                        <label class="form-label small text-muted">Documented Reason</label>
+                        <textarea name="reason" class="form-control form-control-sm" rows="2"
+                          placeholder="Required for audit logs..." required></textarea>
+                      </div>
+                      <button type="submit" class="btn btn-sm btn-danger w-100">
+                        <i class="bi bi-fingerprint me-1"></i> Confirm Reveal
+                      </button>
                     </form>
                   </div>
                 </div>
@@ -91,9 +115,20 @@
         </table>
       </div>
       {% else %}
-      <p class="text-muted">No feedback found.</p>
+      <div class="p-5 text-center text-muted">
+        <i class="bi bi-folder2-open display-4 mb-3 d-block opacity-25"></i>
+        No feedback entries found.
+      </div>
       {% endif %}
     </div>
   </div>
+
 </div>
+
+<style>
+  /* Local override for table rows to support absolute positioning of the popup */
+  .table-hover tbody tr {
+    position: relative;
+  }
+</style>
 {% endblock %}

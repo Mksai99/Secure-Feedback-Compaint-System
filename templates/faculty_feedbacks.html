@@ -1,55 +1,88 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row fade-in">
-  <div class="col-12">
-    <div class="card-custom p-4">
-      <h3 class="mb-3 text-primary-custom">
-        <i class="bi bi-chat-square-dots"></i> Feedback Received
-      </h3>
-      <div class="alert alert-light border d-flex align-items-center mb-4">
-        <i class="bi bi-info-circle text-primary me-2"></i>
-        <span>Student identities are hidden. Use this feedback to improve teaching.</span>
-      </div>
+<div class="fade-in">
 
-      {% if feedbacks %}
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Course</th>
-              <th>Knowledge</th>
-              <th>Communication</th>
-              <th>Punctuality</th>
-              <th>Support</th>
-              <th>Avg Rating</th>
-              <th>Comments</th>
-              <th>Submitted At</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for fb in feedbacks %}
-            <tr>
-              <td class="fw-bold">{{ fb.course or "-" }}</td>
-              <td>{{ fb.knowledge }}</td>
-              <td>{{ fb.communication }}</td>
-              <td>{{ fb.punctuality }}</td>
-              <td>{{ fb.support }}</td>
-              <td>
-                <span class="badge bg-primary">
-                  {{ fb.avg }} / 5
-                </span>
-              </td>
-              <td><span class="text-secondary small">{{ fb.comments }}</span></td>
-              <td class="text-muted small">{{ fb.created_at }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="text-muted">No feedback received yet.</p>
-      {% endif %}
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Incoming Feedback</h2>
+      <p class="text-muted">Review student feedback to improve your teaching.</p>
     </div>
+    <span class="badge bg-white text-secondary border shadow-sm p-2 px-3 rounded-pill">
+      <i class="bi bi-person-badge-fill me-2"></i> {{ session.username }}
+    </span>
+  </div>
+
+  <div
+    class="alert alert-primary bg-primary-subtle border-primary-subtle text-primary-emphasis d-flex align-items-center mb-4 rounded-3">
+    <i class="bi bi-shield-check-fill fs-5 me-3"></i>
+    <div>
+      <strong>Privacy Note:</strong> All student identities are hidden by default. The system uses cryptographic hashing
+      to prevent tracing unless a violation is reported.
+    </div>
+  </div>
+
+  <div class="card-custom p-0 overflow-hidden shadow-sm">
+    <div class="p-4 border-bottom bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-inbox-fill text-primary me-2"></i>Feedback Inbox</h5>
+    </div>
+
+    {% if feedbacks %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light text-muted text-uppercase small">
+          <tr>
+            <th class="ps-4">Course</th>
+            <th>Ratings Overview</th>
+            <th class="text-center">Average</th>
+            <th style="width: 40%;">Student Comments</th>
+            <th class="text-end pe-4">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fb in feedbacks %}
+          <tr>
+            <td class="ps-4">
+              <span class="fw-bold text-dark d-block">{{ fb.course or "General" }}</span>
+            </td>
+            <td>
+              <div class="d-flex gap-2 text-muted small" style="font-size: 0.8rem;">
+                <span class="d-flex align-items-center" title="Knowledge"><i class="bi bi-book me-1"></i>{{ fb.knowledge
+                  }}</span>
+                <span class="d-flex align-items-center" title="Communication"><i class="bi bi-chat-text me-1"></i>{{
+                  fb.communication }}</span>
+                <span class="d-flex align-items-center" title="Punctuality"><i class="bi bi-clock me-1"></i>{{
+                  fb.punctuality }}</span>
+                <span class="d-flex align-items-center" title="Support"><i class="bi bi-heart me-1"></i>{{ fb.support
+                  }}</span>
+              </div>
+            </td>
+            <td class="text-center">
+              <span
+                class="badge {{ 'bg-success' if fb.avg >= 4 else 'bg-warning' if fb.avg >= 3 else 'bg-danger' }} rounded-pill px-3 py-2">
+                {{ fb.avg }}
+              </span>
+            </td>
+            <td>
+              <div
+                class="p-2 bg-light rounded-3 text-secondary border-start border-3 {{ 'border-success' if fb.avg >= 4 else 'border-warning' if fb.avg >= 3 else 'border-danger' }}">
+                <small class="fst-italic">"{{ fb.comments }}"</small>
+              </div>
+            </td>
+            <td class="text-end pe-4 text-muted small">
+              {{ fb.created_at[:10] }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-5 text-center text-muted">
+      <i class="bi bi-chat-square-text display-4 mb-3 d-block opacity-25"></i>
+      No feedback received yet for your courses.
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

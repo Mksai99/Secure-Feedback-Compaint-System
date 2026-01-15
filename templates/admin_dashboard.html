@@ -1,160 +1,223 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row g-4 fade-in">
-  <!-- Status card -->
-  <div class="col-lg-4">
-    <div class="card-custom p-4 h-100">
-      <h5 class="mb-3 text-primary-custom">
-        <i class="bi bi-activity"></i> System Status
-      </h5>
-      <p class="mb-2">
-        Blockchain integrity:
+<div class="fade-in">
+
+  <!-- Header & Status -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Admin Dashboard</h2>
+      <p class="text-muted">System Overview & Management</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center px-3 py-2 bg-white rounded-pill border shadow-sm">
+        <span class="text-muted small me-2">Blockchain Status:</span>
         {% if chain_valid %}
-        <span class="badge bg-success">
-          <i class="bi bi-check-circle"></i> VALIDIFIED
+        <span class="badge bg-success-subtle text-success rounded-pill">
+          <i class="bi bi-shield-check-fill me-1"></i> Verified
         </span>
         {% else %}
-        <span class="badge bg-danger">
-          <i class="bi bi-x-circle"></i> INVALID
+        <span class="badge bg-danger-subtle text-danger rounded-pill">
+          <i class="bi bi-exclamation-octagon-fill me-1"></i> Compromised
         </span>
         {% endif %}
-      </p>
-      <p class="text-muted small mb-0">
-        <i class="bi bi-info-circle"></i> Any tampering in stored feedback will break this chain.
-      </p>
+      </div>
     </div>
   </div>
 
-  <!-- Add users -->
-  <div class="col-lg-4">
-    <div class="card-custom p-4 h-100">
-      <h5 class="mb-3 text-primary-custom">
-        <i class="bi bi-person-badge"></i> User Management
-      </h5>
-
-      <div class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-        <button class="nav-link active py-1 px-3 small me-2" id="pills-faculty-tab" data-bs-toggle="pill"
-          data-bs-target="#pills-faculty" type="button" role="tab">Faculty</button>
-        <button class="nav-link py-1 px-3 small" id="pills-student-tab" data-bs-toggle="pill"
-          data-bs-target="#pills-student" type="button" role="tab">Student</button>
-      </div>
-
-      <div class="tab-content" id="pills-tabContent">
-        <!-- Faculty Form -->
-        <div class="tab-pane fade show active" id="pills-faculty" role="tabpanel">
-          <form action="/admin/add-faculty" method="post">
-            <div class="mb-2">
-              <label class="form-label small fw-bold">Username</label>
-              <input type="text" name="username" class="form-control form-control-sm" required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold">Password</label>
-              <input type="password" name="password" class="form-control form-control-sm" required />
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm w-100">
-              <i class="bi bi-plus-circle"></i> Create Faculty
-            </button>
-          </form>
+  <div class="row g-4">
+    <!-- User Management Card -->
+    <div class="col-lg-5">
+      <div class="card-custom h-100 p-0 overflow-hidden">
+        <div class="p-4 border-bottom bg-light bg-opacity-50">
+          <h5 class="fw-bold mb-0"><i class="bi bi-people-fill text-primary me-2"></i>User Management</h5>
         </div>
-        <!-- Student Form -->
-        <div class="tab-pane fade" id="pills-student" role="tabpanel">
-          <form action="/admin/add-student" method="post">
-            <div class="mb-2">
-              <label class="form-label small fw-bold">Username</label>
-              <input type="text" name="username" class="form-control form-control-sm" required />
+
+        <div class="p-4">
+          <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-3 border" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active rounded-2 small fw-bold" id="pills-faculty-tab" data-bs-toggle="pill"
+                data-bs-target="#pills-faculty" type="button" role="tab">Add Faculty</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link rounded-2 small fw-bold" id="pills-student-tab" data-bs-toggle="pill"
+                data-bs-target="#pills-student" type="button" role="tab">Add Student</button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="pills-tabContent">
+            <!-- Faculty Form -->
+            <div class="tab-pane fade show active" id="pills-faculty" role="tabpanel">
+              <form action="/admin/add-faculty" method="post">
+                <div class="mb-3">
+                  <label class="form-label small text-uppercase text-muted fw-bold">Username</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" name="username" class="form-control" required />
+                  </div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label small text-uppercase text-muted fw-bold">Password</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    <input type="password" name="password" class="form-control" required />
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                  Create Faculty Account
+                </button>
+              </form>
             </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold">Password</label>
-              <input type="password" name="password" class="form-control form-control-sm" required />
+            <!-- Student Form -->
+            <div class="tab-pane fade" id="pills-student" role="tabpanel">
+              <form action="/admin/add-student" method="post">
+                <div class="mb-3">
+                  <label class="form-label small text-uppercase text-muted fw-bold">Username</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" name="username" class="form-control" required />
+                  </div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label small text-uppercase text-muted fw-bold">Password</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    <input type="password" name="password" class="form-control" required />
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-secondary w-100">
+                  Create Student Account
+                </button>
+              </form>
             </div>
-            <button type="submit" class="btn btn-success btn-sm w-100">
-              <i class="bi bi-plus-circle"></i> Create Student
-            </button>
-          </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Faculty List -->
+    <div class="col-lg-7">
+      <div class="card-custom h-100 p-0">
+        <div class="p-4 border-bottom justify-content-between d-flex align-items-center">
+          <h5 class="fw-bold mb-0"><i class="bi bi-mortarboard-fill text-secondary me-2"></i>Active Faculty</h5>
+          <span class="badge bg-light text-dark border">{{ faculty_list|length }} Members</span>
+        </div>
+        <div class="p-0" style="max-height: 400px; overflow-y: auto;">
+          {% if faculty_list %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="bg-light sticky-top">
+                <tr>
+                  <th class="ps-4">Username</th>
+                  <th class="text-end pe-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in faculty_list %}
+                <tr>
+                  <td class="ps-4 fw-medium text-dark">
+                    <div class="d-flex align-items-center gap-2">
+                      <div
+                        class="bg-primary-subtle text-primary rounded-circle p-1 d-flex justify-content-center align-items-center"
+                        style="width: 32px; height: 32px;">
+                        <span class="small fw-bold">{{ f.username[:1]|upper }}</span>
+                      </div>
+                      {{ f.username }}
+                    </div>
+                  </td>
+                  <td class="text-end pe-4">
+                    <form action="/admin/delete-faculty/{{ f.username }}" method="post"
+                      onsubmit="return confirm('Privileged Action: Remove faculty {{ f.username }}?');">
+                      <button class="btn btn-sm btn-light text-danger border-0 h-100">
+                        Delete <i class="bi bi-trash ms-1"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-5 text-center text-muted">
+            <i class="bi bi-people display-6 mb-3 d-block opacity-25"></i>
+            No faculty members registered yet.
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Faculty list -->
-  <div class="col-lg-4">
-    <div class="card-custom p-4 h-100">
-      <h5 class="mb-3 text-primary-custom">
-        <i class="bi bi-people"></i> Faculty List
-      </h5>
-      {% if faculty_list %}
-      <ul class="list-group list-group-flush">
-        {% for f in faculty_list %}
-        <li class="list-group-item px-0 d-flex justify-content-between align-items-center border-bottom">
-          <span class="text-dark">
-            <i class="bi bi-person-circle text-secondary"></i> {{ f.username }}
-          </span>
-          <form action="/admin/delete-faculty/{{ f.username }}" method="post"
-            onsubmit="return confirm('Remove faculty {{ f.username }}?');">
-            <button class="btn btn-sm btn-outline-danger border-0">
-              <i class="bi bi-trash"></i>
-            </button>
-          </form>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="text-muted small">No faculty added yet.</p>
-      {% endif %}
-    </div>
-  </div>
-</div>
+  <!-- Feedback Database -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card-custom p-0 overflow-hidden">
+        <div class="p-4 border-bottom bg-light bg-opacity-50">
+          <h5 class="fw-bold mb-0"><i class="bi bi-database-fill-lock text-info me-2"></i>Encrypted Feedback Ledger</h5>
+        </div>
 
-<div class="row mt-4 fade-in">
-  <div class="col-12">
-    <div class="card-custom p-4">
-      <h5 class="mb-3 text-primary-custom">
-        <i class="bi bi-chat-square-dots"></i> All Feedback (Anonymous)
-      </h5>
-
-      {% if feedbacks %}
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Faculty</th>
-              <th>Course</th>
-              <th>Ratings (K/C/P/S)</th>
-              <th>Avg</th>
-              <th>Comments</th>
-              <th>Submitted At</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for fb in feedbacks %}
-            <tr>
-              <td class="fw-bold text-primary">{{ fb.faculty_username }}</td>
-              <td>{{ fb.course or "-" }}</td>
-              <td><span class="small text-muted">{{ fb.knowledge }}/{{ fb.communication }}/{{ fb.punctuality }}/{{
-                  fb.support }}</span></td>
-              <td>
-                <span class="badge bg-primary">{{ fb.avg }}</span>
-              </td>
-              <td><small class="text-dark">{{ fb.comments }}</small></td>
-              <td class="text-muted small">{{ fb.created_at }}</td>
-              <td>
-                <form action="/admin/delete-feedback/{{ fb.id }}" method="post"
-                  onsubmit="return confirm('Remove this feedback entry?');">
-                  <button class="btn btn-sm btn-light text-danger border">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </form>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        {% if feedbacks %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4">Faculty</th>
+                <th>Course</th>
+                <th>Ratings (K/C/P/S)</th>
+                <th>Avg</th>
+                <th style="width: 30%;">Comments</th>
+                <th>Timestamp</th>
+                <th class="text-end pe-4">Manage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fb in feedbacks %}
+              <tr>
+                <td class="ps-4 fw-bold text-primary">{{ fb.faculty_username }}</td>
+                <td><span class="badge bg-light text-dark border">{{ fb.course or "-" }}</span></td>
+                <td>
+                  <div class="d-flex gap-1 text-muted small font-monospace">
+                    <span title="Knowledge">{{ fb.knowledge }}</span>/
+                    <span title="Communication">{{ fb.communication }}</span>/
+                    <span title="Punctuality">{{ fb.punctuality }}</span>/
+                    <span title="Support">{{ fb.support }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    class="badge {{ 'bg-success' if fb.avg >= 4 else 'bg-warning' if fb.avg >= 3 else 'bg-danger' }}">
+                    {{ fb.avg }}
+                  </span>
+                </td>
+                <td>
+                  <div class="text-break text-secondary small" style="max-width: 400px;">
+                    {{ fb.comments }}
+                  </div>
+                </td>
+                <td class="text-muted small">{{ fb.created_at[:10] }} <span class="text-secondary-subtle">{{
+                    fb.created_at[11:16] }}</span></td>
+                <td class="text-end pe-4">
+                  <form action="/admin/delete-feedback/{{ fb.id }}" method="post"
+                    onsubmit="return confirm('Soft delete this record? It will remain in blockchain history.');">
+                    <button class="btn btn-sm btn-light text-danger border" title="Soft Delete">
+                      <i class="bi bi-archive-fill"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center text-muted">
+          <i class="bi bi-inbox display-4 mb-3 d-block opacity-25"></i>
+          No feedback submissions found in the ledger.
+        </div>
+        {% endif %}
       </div>
-      {% else %}
-      <p class="text-muted">No feedback yet.</p>
-      {% endif %}
     </div>
   </div>
+
 </div>
 {% endblock %}

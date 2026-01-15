@@ -1,60 +1,71 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6 col-lg-4">
-    <div class="card-custom p-4 mt-5">
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+  <div class="col-md-5 col-lg-4">
+    <div class="glass-panel p-4 p-md-5 rounded-4">
       <div class="text-center mb-4">
-        <i class="bi bi-shield-lock text-primary-custom" style="font-size: 2.5rem;"></i>
-        <h3 class="mt-2 text-primary-custom">Welcome Back</h3>
-        <p class="text-muted small">Secure, Anonymous, Verified.</p>
+        <div
+          class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3"
+          style="width: 64px; height: 64px;">
+          <i class="bi bi-shield-lock-fill fs-2"></i>
+        </div>
+        <h2 class="fw-bold text-primary mb-1">Secure Feedback</h2>
+        <p class="text-muted small">Institutional & Anonymous</p>
       </div>
 
       {% if error %}
-      <div class="alert alert-danger py-2 small">
-        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+      <div class="alert alert-danger fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-circle-fill text-danger fs-5"></i>
+        <div>{{ error }}</div>
       </div>
       {% endif %}
 
-      <form action="/login" method="post">
-        <div class="mb-3">
-          <label class="form-label">Username</label>
+      <form action="/login" method="post" class="needs-validation">
+        <div class="mb-4">
+          <label class="form-label text-uppercase small text-muted fw-bold">Identification</label>
           <div class="input-group">
-            <span class="input-group-text">
-              <i class="bi bi-person"></i>
+            <span class="input-group-text bg-transparent border-end-0">
+              <i class="bi bi-person text-muted"></i>
             </span>
-            <input type="text" name="username" class="form-control" placeholder="Enter your ID" required />
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <div class="input-group">
-            <span class="input-group-text">
-              <i class="bi bi-lock"></i>
-            </span>
-            <input type="password" name="password" class="form-control" placeholder="••••••••" required />
+            <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="Username or ID"
+              required style="background: transparent;">
           </div>
         </div>
 
         <div class="mb-4">
-          <label class="form-label">Select Role</label>
+          <label class="form-label text-uppercase small text-muted fw-bold">Security Credential</label>
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0">
+              <i class="bi bi-key text-muted"></i>
+            </span>
+            <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="••••••••"
+              required style="background: transparent;">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label text-uppercase small text-muted fw-bold">Role Access</label>
           <select name="role" class="form-select" required>
-            <option value="" disabled selected>Choose your role...</option>
+            <option value="" disabled selected>Select your role...</option>
             <option value="student">Student</option>
             <option value="faculty">Faculty</option>
             <option value="admin">Admin</option>
-            <option value="authority">Authority</option>
+            <option value="authority">Authority (Oversight)</option>
           </select>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">
-          Sign In <i class="bi bi-arrow-right-circle ms-1"></i>
+        <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm">
+          Access System <i class="bi bi-arrow-right-short ms-1 fs-5 align-middle"></i>
         </button>
       </form>
-    </div>
 
-    <div class="text-center mt-3 text-muted small">
-      Protected by Blockchain & Privacy Protocols
+      <div class="mt-4 pt-3 border-top text-center">
+        <div class="d-flex justify-content-center gap-3 text-muted small">
+          <span><i class="bi bi-shield-check me-1"></i>Encoded</span>
+          <span><i class="bi bi-incognito me-1"></i>Anonymous</span>
+          <span><i class="bi bi-link-45deg me-1"></i>Verified</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>

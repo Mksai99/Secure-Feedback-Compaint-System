@@ -1,31 +1,57 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row justify-content-center fade-in">
+<div class="d-flex justify-content-center align-items-center fade-in" style="min-height: 70vh;">
     <div class="col-md-8 col-lg-6">
-        <div class="card-custom p-5 text-center border-danger shadow-sm">
-            <div class="mb-4">
-                <i class="bi bi-eye-fill display-1 text-danger"></i>
+
+        <div class="glass-panel p-5 text-center border-danger border-2 shadow-lg position-relative overflow-hidden">
+            <!-- Alert Tape Effect -->
+            <div
+                class="position-absolute top-0 start-0 w-100 bg-danger text-white py-1 small fw-bold text-uppercase letter-spacing-1">
+                Restricted Access • Identity Exposed
             </div>
 
-            <h2 class="mb-3 text-uppercase text-danger fw-bold">Identity Revealed</h2>
-            <p class="text-secondary mb-4">You have successfully decrypted the identity for feedback ID: <br><code
-                    class="text-dark bg-light px-2 py-1 rounded">{{ feedback_id }}</code></p>
-
-            <div class="card bg-danger-subtle border-danger mb-4">
-                <div class="card-body">
-                    <h5 class="card-title text-danger small text-uppercase fw-bold">Student Identity (Username)</h5>
-                    <h3 class="display-6 text-dark font-monospace">{{ real_identity }}</h3>
+            <div class="mb-4 mt-3">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger p-3 rounded-circle"
+                    style="width: 80px; height: 80px;">
+                    <i class="bi bi-unlock-fill fs-1"></i>
                 </div>
             </div>
 
-            <div class="alert alert-secondary text-start border bg-light">
-                <small class="text-muted"><i class="bi bi-info-circle-fill"></i> <strong>Audit Record
-                        Created:</strong></small>
-                <div class="mt-1 small">Reason: "{{ reason }}"</div>
+            <h2 class="mb-2 text-dark fw-bold">Identity Decrypted</h2>
+            <p class="text-muted mb-4 small">
+                The cryptographic seal for feedback <code
+                    class="text-dark bg-secondary-subtle px-2 py-1 rounded ms-1">{{ feedback_id }}</code> has been
+                broken.
+            </p>
+
+            <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+                <div class="card-header bg-dark text-white text-uppercase font-monospace small py-2">
+                    Start of Record
+                </div>
+                <div class="card-body bg-light">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-2">Verified Student Identity</h6>
+                    <h3 class="display-6 fw-bold text-dark font-monospace mb-0">{{ real_identity }}</h3>
+                </div>
+                <div class="card-footer bg-white border-top border-light py-2">
+                    <small class="text-muted"><i class="bi bi-check-circle-fill text-success me-1"></i> Integrity
+                        Verified</small>
+                </div>
             </div>
 
-            <a href="/authority" class="btn btn-outline-primary mt-3">
-                <i class="bi bi-arrow-left"></i> Return to Authority Dashboard
+            <div class="border rounded-3 p-3 text-start bg-white mb-4">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-journal-plus text-secondary fs-5"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1 small text-uppercase">Audit Log Entry Created</h6>
+                        <p class="mb-0 small text-muted">
+                            Recorded Justification: <span class="fst-italic text-dark">"{{ reason }}"</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <a href="/authority" class="btn btn-secondary px-4">
+                <i class="bi bi-arrow-left me-2"></i> Return to Oversight Panel
             </a>
         </div>
     </div>
