@@ -13,23 +13,44 @@ app.secret_key = "any_random_long_secret_here"
 # ---------- MongoDB ----------
 MONGO_URI = "mongodb://localhost:27017/"
 client = MongoClient(MONGO_URI)
-db = client["feedback_blockchain_db"]
+db = client["feedback_platform_db"]
+
+# Migration: Rename old collections and fields if they exist
+def migrate_collections():
+    # 1. Rename collections
+    old_to_new = {
+        "participants": "users",
+        "entities": "targets",
+        "moderators": "authorities"
+    }
+    existing_collections = db.list_collection_names()
+    for old, new in old_to_new.items():
+        if old in existing_collections and new not in existing_collections:
+            db[old].rename(new)
+    
+    # 2. Rename fields in feedback collection
+    db["feedback"].update_many(
+        {}, 
+        {"$rename": {
+            "participant_hash": "user_hash", 
+            "encrypted_participant_id": "encrypted_user_id"
+        }}
+    )
+
+migrate_collections()
 
 # Separate collections for each role
-students_col = db["students"]     # {username, password, role="student"}
-faculty_col = db["faculty"]       # {username, password, role="faculty"}
-admins_col = db["admins"]         # {username, password, role="admin"}
-authority_col = db["authority"]   # {username, password, role="authority"} -- NEW
+users_col = db["users"]             # {username, password, role="user"}
+targets_col = db["targets"]         # {username, password, role="target"}
+admins_col = db["admins"]           # {username, password, role="admin"}
+authorities_col = db["authorities"] # {username, password, role="authority"}
 
-feedback_col = db["feedback"]     # feedback documents
-blocks_col = db["blocks"]         # blockchain
-audit_col = db["audit_logs"]      # audit logs -- NEW
+feedback_col = db["feedback"]       # feedback documents
+blocks_col = db["blocks"]           # blockchain
+audit_col = db["audit_logs"]        # audit logs
 
-feedback_col = db["feedback"]     # feedback documents
-blocks_col = db["blocks"]         # blockchain
-
-# secret salt for student anonymity
-ANON_SALT = "some_fixed_random_salt"
+# secret salt for user anonymity
+USER_SALT = "some_fixed_random_salt"
 
 # ---------- Encryption Setup ----------
 KEY_FILE = "secret.key"
@@ -81,10 +102,10 @@ def create_default_admin():
 
 def create_default_authority():
     """Create default authority user if none exists."""
-    if authority_col.count_documents({"role": "authority"}) == 0:
-        authority_col.insert_one({
+    if authorities_col.count_documents({"role": "authority"}) == 0:
+        authorities_col.insert_one({
             "username": "authority",
-            "password": "auth123",  # demo only
+            "password": "auth123",    # demo only
             "role": "authority"
         })
 
@@ -127,7 +148,7 @@ def create_block(feedback_id: ObjectId, feedback_data: dict):
         "hash": block_hash
     })
 
-    # ---- NEW: update chain_meta ----
+    # ---- Update chain_meta ----
     chain_meta_col = db["chain_meta"]
     meta = chain_meta_col.find_one({"_id": "head"})
 
@@ -164,7 +185,6 @@ def verify_chain() -> bool:
     chain_meta_col = db["chain_meta"]
     meta = chain_meta_col.find_one({"_id": "head"})
     if not meta:
-        # No head info -> can't trust chain
         return False
 
     expected_total = meta.get("total_blocks", 0)
@@ -174,11 +194,9 @@ def verify_chain() -> bool:
     # Get all blocks ordered by idx
     blocks = list(blocks_col.find().sort("idx", 1))
     if not blocks:
-        # No blocks but meta says there should be
         return False
 
     if len(blocks) != expected_total:
-        # Someone deleted or added blocks
         return False
 
     prev_hash = "0"
@@ -194,25 +212,25 @@ def verify_chain() -> bool:
         # 2) Fetch feedback document
         fb = feedback_col.find_one({"_id": b["feedback_id"]})
         if not fb:
-            # Block points to feedback that no longer exists
             return False
 
         # 3) Rebuild data JSON exactly as in create_block
         fb_chain = {
             "id": str(fb["_id"]),
-            "faculty_username": fb["faculty_username"],
-            "course": fb.get("course"),
-            "comments": fb["comments"],
+            "target_name": fb["target_name"],
+            "category": fb.get("category"),
+            "description": fb["description"],
+            "priority": fb.get("priority"),
             "created_at": fb["created_at"],
-            "student_hash": fb["student_hash"],
-            "ratings": fb["ratings"],
-            "average_rating": fb["average_rating"],
+            "user_hash": fb["user_hash"],
+            "organization_id": fb.get("organization_id"),
+            "ratings": fb.get("ratings", {}),
+            "average_rating": fb.get("average_rating", 0),
         }
         calc_data_hash = sha256(json.dumps(fb_chain, sort_keys=True))
 
         # 4) data_hash must match
         if calc_data_hash != b["data_hash"]:
-            # Feedback was edited
             return False
 
         # 5) block hash must match
@@ -220,7 +238,6 @@ def verify_chain() -> bool:
             f"{b['idx']}{b['timestamp']}{b['data_hash']}{b['prev_hash']}"
         )
         if calc_block_hash != b["hash"]:
-            # Block content was edited
             return False
 
         prev_hash = b["hash"]
@@ -267,8 +284,8 @@ def login_required(role=None):
 def home():
     return render_template(
         "home.html",
-        title="Secure Feedback System",
-        heading="Secure Feedback System",
+        title="Secure Anonymous Feedback Platform",
+        heading="Privacy-Preserving Feedback System",
     )
 
 
@@ -280,14 +297,14 @@ def login():
         role = request.form.get("role")
 
         # choose collection based on role
-        if role == "student":
-            col = students_col
-        elif role == "faculty":
-            col = faculty_col
+        if role == "user":
+            col = users_col
+        elif role == "target":
+            col = targets_col
         elif role == "admin":
             col = admins_col
         elif role == "authority":
-            col = authority_col
+            col = authorities_col
         else:
             col = None
 
@@ -298,10 +315,10 @@ def login():
         if user:
             session["username"] = username
             session["role"] = role
-            if role == "student":
-                return redirect(url_for("student_feedback"))
-            elif role == "faculty":
-                return redirect(url_for("faculty_feedbacks"))
+            if role == "user":
+                return redirect(url_for("user_submit_feedback"))
+            elif role == "target":
+                return redirect(url_for("target_view_feedback"))
             elif role == "authority":
                 return redirect(url_for("authority_dashboard"))
             else:
@@ -323,116 +340,115 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ----- Student -----
-@app.route("/student/feedback", methods=["GET", "POST"])
-@login_required(role="student")
-def student_feedback():
+# ----- User -----
+@app.route("/user/provide-feedback", methods=["GET", "POST"])
+@login_required(role="user")
+def user_submit_feedback():
     if request.method == "POST":
-        faculty_username = request.form.get("faculty_username")
-        course = request.form.get("course")
-        comments = request.form.get("comments")
+        target_name = request.form.get("target_username")
+        category = request.form.get("category")
+        description = request.form.get("description")
+        priority = request.form.get("priority", "Medium")
         created_at = datetime.utcnow().isoformat()
 
-        # 4 criteria ratings (1–5)
-        rating_knowledge = int(request.form.get("rating_knowledge"))
-        rating_communication = int(request.form.get("rating_communication"))
-        rating_punctuality = int(request.form.get("rating_punctuality"))
-        rating_support = int(request.form.get("rating_support"))
+        # optional indicator ratings
+        rating_1 = int(request.form.get("rating_1", 0))
+        rating_2 = int(request.form.get("rating_2", 0))
+        rating_3 = int(request.form.get("rating_3", 0))
+        rating_4 = int(request.form.get("rating_4", 0))
 
-        avg_rating = round(
-            (rating_knowledge
-             + rating_communication
-             + rating_punctuality
-             + rating_support) / 4.0,
-            2,
-        )
+        avg_rating = round((rating_1 + rating_2 + rating_3 + rating_4) / 4.0, 2)
 
-        student_username = session["username"]
-        # anonymized student id (not shown anywhere)
-        student_hash = sha256(student_username + ANON_SALT)
+        user_username = session["username"]
+        # anonymized user id
+        user_hash = sha256(user_username + USER_SALT)
 
-        fb_doc = {
-            "faculty_username": faculty_username,
-            "course": course,
-            "comments": comments,
+        feedback_doc = {
+            "target_name": target_name,
+            "category": category,
+            "description": description,
+            "priority": priority,
             "created_at": created_at,
-            "student_hash": student_hash,
+            "user_hash": user_hash,
+            "organization_id": "ORG-001", # static demo ID
             "ratings": {
-                "knowledge": rating_knowledge,
-                "communication": rating_communication,
-                "punctuality": rating_punctuality,
-                "support": rating_support,
+                "indicator_1": rating_1,
+                "indicator_2": rating_2,
+                "indicator_3": rating_3,
+                "indicator_4": rating_4,
             },
             "average_rating": avg_rating,
-            "deleted": False,   # for soft delete
-            # --- NEW: Controlled Anonymity Fields ---
-            "encrypted_student_id": encrypt_data(student_username),
-            "reveal_status": "sealed",  # sealed | revealed
+            "deleted": False,
+            "encrypted_user_id": encrypt_data(user_username),
+            "reveal_status": "sealed",
         }
 
-        result = feedback_col.insert_one(fb_doc)
-        fb_id = result.inserted_id
+        result = feedback_col.insert_one(feedback_doc)
+        feedback_id = result.inserted_id
 
-        # data used on blockchain (still anonymous)
+        # blockchain data
         fb_for_chain = {
-            "id": str(fb_id),
-            "faculty_username": faculty_username,
-            "course": course,
-            "comments": comments,
+            "id": str(feedback_id),
+            "target_name": target_name,
+            "category": category,
+            "description": description,
+            "priority": priority,
             "created_at": created_at,
-            "student_hash": student_hash,
-            "ratings": fb_doc["ratings"],
+            "user_hash": user_hash,
+            "organization_id": feedback_doc["organization_id"],
+            "ratings": feedback_doc["ratings"],
             "average_rating": avg_rating,
         }
-        create_block(fb_id, fb_for_chain)
+        create_block(feedback_id, fb_for_chain)
 
-        return redirect(url_for("student_feedback"))
+        return redirect(url_for("user_submit_feedback"))
 
-    # GET – show form with faculty list
-    faculty_list = list(
-        faculty_col.find({"role": "faculty"}, {"username": 1, "_id": 0})
+    # GET – show form with targets list
+    target_list = list(
+        targets_col.find({"role": "target"}, {"username": 1, "_id": 0})
     )
     return render_template(
-        "student_feedback.html",
-        faculty_list=faculty_list,
-        title="Student Feedback",
-        heading="Student Panel",
+        "submit_feedback.html",
+        target_list=target_list,
+        title="Submit Anonymous Feedback",
+        heading="User Panel",
     )
 
 
-# ----- Faculty -----
-@app.route("/faculty/feedbacks")
-@login_required(role="faculty")
-def faculty_feedbacks():
-    faculty_username = session["username"]
+# ----- Target -----
+@app.route("/target/view-feedback")
+@login_required(role="target")
+def target_view_feedback():
+    target_username = session["username"]
     fbs = list(
         feedback_col.find({
-            "faculty_username": faculty_username,
+            "target_name": target_username,
             "deleted": {"$ne": True}
         }).sort("created_at", -1)
     )
 
-    feedbacks = []
-    for fb in fbs:
-        ratings = fb.get("ratings", {})
-        feedbacks.append(
+    feedback_list = []
+    for f in fbs:
+        ratings = f.get("ratings", {})
+        feedback_list.append(
             {
-                "course": fb.get("course"),
-                "comments": fb.get("comments"),
-                "created_at": fb.get("created_at"),
-                "avg": fb.get("average_rating", 0),
-                "knowledge": ratings.get("knowledge", "-"),
-                "communication": ratings.get("communication", "-"),
-                "punctuality": ratings.get("punctuality", "-"),
-                "support": ratings.get("support", "-"),
+                "category": f.get("category"),
+                "description": f.get("description"),
+                "priority": f.get("priority"),
+                "created_at": f.get("created_at"),
+                "avg": f.get("average_rating", 0),
+                "ind1": ratings.get("indicator_1", "-"),
+                "ind2": ratings.get("indicator_2", "-"),
+                "ind3": ratings.get("indicator_3", "-"),
+                "ind4": ratings.get("indicator_4", "-"),
             }
         )
 
     return render_template(
-        "faculty_feedbacks.html",
-        feedbacks=feedbacks,
-        title="Faculty Feedbacks",
-        heading="Faculty Panel",
+        "view_feedback.html",
+        feedback_list=feedback_list,
+        title="Received Feedback",
+        heading="Target Panel",
     )
 
 
@@ -440,84 +456,75 @@ def faculty_feedbacks():
 @app.route("/admin")
 @login_required(role="admin")
 def admin_dashboard():
-    faculty_list = list(faculty_col.find({"role": "faculty"}, {"username": 1, "_id": 0}))
+    target_list = list(targets_col.find({"role": "target"}, {"username": 1, "_id": 0}))
     fbs = list(
         feedback_col.find({
             "deleted": {"$ne": True}
         }).sort("created_at", -1)
     )
 
-    feedbacks = []
-    for fb in fbs:
-        ratings = fb.get("ratings", {})
-        feedbacks.append(
+    feedback_list = []
+    for f in fbs:
+        feedback_list.append(
             {
-                "id": str(fb["_id"]),
-                "faculty_username": fb.get("faculty_username"),
-                "course": fb.get("course"),
-                "comments": fb.get("comments"),
-                "created_at": fb.get("created_at"),
-                "avg": fb.get("average_rating", 0),
-                "knowledge": ratings.get("knowledge", "-"),
-                "communication": ratings.get("communication", "-"),
-                "punctuality": ratings.get("punctuality", "-"),
-                "support": ratings.get("support", "-"),
+                "id": str(f["_id"]),
+                "target_name": f.get("target_name"),
+                "category": f.get("category"),
+                "description": f.get("description"),
+                "priority": f.get("priority"),
+                "created_at": f.get("created_at"),
+                "avg": f.get("average_rating", 0),
             }
         )
 
     chain_valid = verify_chain()
     return render_template(
         "admin_dashboard.html",
-        faculty_list=faculty_list,
-        feedbacks=feedbacks,
+        target_list=target_list,
+        feedback_list=feedback_list,
         chain_valid=chain_valid,
-        title="Admin Dashboard",
-        heading="Admin Panel",
+        title="Administrator Control Center",
+        heading="Platform Administration",
     )
 
 
-@app.route("/admin/add-faculty", methods=["POST"])
+@app.route("/admin/add-target", methods=["POST"])
 @login_required(role="admin")
-def admin_add_faculty():
+def admin_add_target():
     username = request.form.get("username")
     password = request.form.get("password")
     if username and password:
-        faculty_col.insert_one({"username": username, "password": password, "role": "faculty"})
+        targets_col.insert_one({"username": username, "password": password, "role": "target"})
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/add-student", methods=["POST"])
+@app.route("/admin/add-user", methods=["POST"])
 @login_required(role="admin")
-def admin_add_student():
+def admin_add_user():
     username = request.form.get("username")
     password = request.form.get("password")
     if username and password:
-        students_col.insert_one({"username": username, "password": password, "role": "student"})
+        users_col.insert_one({"username": username, "password": password, "role": "user"})
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/delete-faculty/<username>", methods=["POST"])
+@app.route("/admin/delete-target/<username>", methods=["POST"])
 @login_required(role="admin")
-def admin_delete_faculty(username):
-    # Only delete users who are actually faculty
-    faculty_col.delete_one({"username": username, "role": "faculty"})
+def admin_delete_target(username):
+    targets_col.delete_one({"username": username, "role": "target"})
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/delete-feedback/<feedback_id>", methods=["POST"])
+@app.route("/admin/delete-feedback/<fb_id>", methods=["POST"])
 @login_required(role="admin")
-def admin_delete_feedback(feedback_id):
-    """
-    Soft delete feedback: mark as deleted = True, keep it in DB + blockchain.
-    This keeps blockchain history intact but hides it from UI.
-    """
+def admin_delete_feedback(fb_id):
     try:
-        fid = ObjectId(feedback_id)
+        rid = ObjectId(fb_id)
     except Exception:
         return redirect(url_for("admin_dashboard"))
 
     feedback_col.update_one(
-        {"_id": fid},
+        {"_id": rid},
         {"$set": {"deleted": True, "deleted_at": datetime.utcnow().isoformat()}}
     )
     return redirect(url_for("admin_dashboard"))
@@ -527,60 +534,52 @@ def admin_delete_feedback(feedback_id):
 @app.route("/authority")
 @login_required(role="authority")
 def authority_dashboard():
-    # Only show non-deleted feedback (or show all? admin shows non-deleted).
-    # Authority needs to be able to audit feedback.
-    # We will show same list as admin.
     fbs = list(
         feedback_col.find({
             "deleted": {"$ne": True}
         }).sort("created_at", -1)
     )
 
-    feedbacks = []
-    for fb in fbs:
-        ratings = fb.get("ratings", {})
-        feedbacks.append({
-            "id": str(fb["_id"]),
-            "faculty_username": fb.get("faculty_username"),
-            "course": fb.get("course"),
-            "comments": fb.get("comments"),
-            "created_at": fb.get("created_at"),
-            "avg": fb.get("average_rating", 0),
-            "reveal_status": fb.get("reveal_status", "sealed"),  # Show status
-            # Do NOT show encrypted_student_id or real identity here by default
+    feedback_list = []
+    for f in fbs:
+        feedback_list.append({
+            "id": str(f["_id"]),
+            "target_name": f.get("target_name"),
+            "category": f.get("category"),
+            "description": f.get("description"),
+            "priority": f.get("priority"),
+            "created_at": f.get("created_at"),
+            "avg": f.get("average_rating", 0),
+            "reveal_status": f.get("reveal_status", "sealed"),
         })
 
     return render_template(
         "authority_dashboard.html",
-        feedbacks=feedbacks,
-        title="Authority Dashboard",
+        feedback_list=feedback_list,
+        title="Authority Oversight",
         heading="Authority Panel"
     )
 
 
-@app.route("/authority/reveal/<feedback_id>", methods=["POST"])
+@app.route("/authority/reveal/<fb_id>", methods=["POST"])
 @login_required(role="authority")
-def authority_reveal(feedback_id):
+def authority_reveal(fb_id):
     reason = request.form.get("reason")
     if not reason:
-        # Reason is mandatory
         return "Reason is mandatory", 400
 
     try:
-        fid = ObjectId(feedback_id)
+        rid = ObjectId(fb_id)
     except:
         return "Invalid ID", 400
 
-    fb = feedback_col.find_one({"_id": fid})
+    fb = feedback_col.find_one({"_id": rid})
     if not fb:
-        return "Feedback not found", 404
-
-    # Check if already revealed? Even if yes, we can reveal again or just show it.
-    # But we update status.
+        return "Feedback record not found", 404
 
     # Decrypt
-    encrypted_id = fb.get("encrypted_student_id")
-    real_identity = "Unknown (Legacy)"
+    encrypted_id = fb.get("encrypted_user_id")
+    real_identity = "Unknown (Manual Entry)"
     if encrypted_id:
         try:
             real_identity = decrypt_data(encrypted_id)
@@ -589,29 +588,25 @@ def authority_reveal(feedback_id):
 
     # Update status
     feedback_col.update_one(
-        {"_id": fid},
+        {"_id": rid},
         {"$set": {"reveal_status": "revealed"}}
     )
 
     # Log to Audit
     audit_col.insert_one({
-        "feedback_id": str(fid),
+        "feedback_id": str(rid),
         "action": "IDENTITY_REVEAL",
         "performed_by": session["username"],
         "reason": reason,
         "timestamp": datetime.utcnow().isoformat()
     })
 
-    # Show the identity to the Authority
-    # We can render a simple result page or flash it.
-    # For a specialized flow, let's render a "reveal_result.html" or just reuse a template.
-    # I'll create a simple string return or a small template for "Identity Revealed".
     return render_template(
-        "authority_reveal_result.html",
+        "reveal_result.html",
         real_identity=real_identity,
         reason=reason,
-        feedback_id=feedback_id,
-        title="Identity Revealed"
+        feedback_id=fb_id,
+        title="Identity Unmasked"
     )
 
 
@@ -623,7 +618,7 @@ def authority_audit_logs():
         "audit_logs.html",
         logs=logs,
         title="Audit Logs",
-        heading="Audit Logs"
+        heading="Authority Audit Trail"
     )
 
 

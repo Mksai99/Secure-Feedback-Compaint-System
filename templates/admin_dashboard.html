@@ -29,25 +29,25 @@
     <div class="col-lg-5">
       <div class="card-custom h-100 p-0 overflow-hidden">
         <div class="p-4 border-bottom bg-light bg-opacity-50">
-          <h5 class="fw-bold mb-0"><i class="bi bi-people-fill text-primary me-2"></i>User Management</h5>
+          <h5 class="fw-bold mb-0"><i class="bi bi-people-fill text-primary me-2"></i>User & Target Management</h5>
         </div>
 
         <div class="p-4">
           <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-3 border" id="pills-tab" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active rounded-2 small fw-bold" id="pills-faculty-tab" data-bs-toggle="pill"
-                data-bs-target="#pills-faculty" type="button" role="tab">Add Faculty</button>
+              <button class="nav-link active rounded-2 small fw-bold" id="pills-target-tab" data-bs-toggle="pill"
+                data-bs-target="#pills-target" type="button" role="tab">Add Target</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link rounded-2 small fw-bold" id="pills-student-tab" data-bs-toggle="pill"
-                data-bs-target="#pills-student" type="button" role="tab">Add Student</button>
+              <button class="nav-link rounded-2 small fw-bold" id="pills-user-tab" data-bs-toggle="pill"
+                data-bs-target="#pills-user" type="button" role="tab">Add User</button>
             </li>
           </ul>
 
           <div class="tab-content" id="pills-tabContent">
-            <!-- Faculty Form -->
-            <div class="tab-pane fade show active" id="pills-faculty" role="tabpanel">
-              <form action="/admin/add-faculty" method="post">
+            <!-- Target Form -->
+            <div class="tab-pane fade show active" id="pills-target" role="tabpanel">
+              <form action="/admin/add-target" method="post">
                 <div class="mb-3">
                   <label class="form-label small text-uppercase text-muted fw-bold">Username</label>
                   <div class="input-group">
@@ -63,13 +63,13 @@
                   </div>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">
-                  Create Faculty Account
+                  Create Target Account
                 </button>
               </form>
             </div>
-            <!-- Student Form -->
-            <div class="tab-pane fade" id="pills-student" role="tabpanel">
-              <form action="/admin/add-student" method="post">
+            <!-- User Form -->
+            <div class="tab-pane fade" id="pills-user" role="tabpanel">
+              <form action="/admin/add-user" method="post">
                 <div class="mb-3">
                   <label class="form-label small text-uppercase text-muted fw-bold">Username</label>
                   <div class="input-group">
@@ -85,7 +85,7 @@
                   </div>
                 </div>
                 <button type="submit" class="btn btn-secondary w-100">
-                  Create Student Account
+                  Create User Account
                 </button>
               </form>
             </div>
@@ -94,15 +94,15 @@
       </div>
     </div>
 
-    <!-- Active Faculty List -->
+    <!-- Active Targets List -->
     <div class="col-lg-7">
       <div class="card-custom h-100 p-0">
         <div class="p-4 border-bottom justify-content-between d-flex align-items-center">
-          <h5 class="fw-bold mb-0"><i class="bi bi-mortarboard-fill text-secondary me-2"></i>Active Faculty</h5>
-          <span class="badge bg-light text-dark border">{{ faculty_list|length }} Members</span>
+          <h5 class="fw-bold mb-0"><i class="bi bi-shield-shaded text-secondary me-2"></i>Active Targets</h5>
+          <span class="badge bg-light text-dark border">{{ target_list|length }} Targets</span>
         </div>
         <div class="p-0" style="max-height: 400px; overflow-y: auto;">
-          {% if faculty_list %}
+          {% if target_list %}
           <div class="table-responsive">
             <table class="table table-hover mb-0">
               <thead class="bg-light sticky-top">
@@ -112,21 +112,21 @@
                 </tr>
               </thead>
               <tbody>
-                {% for f in faculty_list %}
+                {% for t in target_list %}
                 <tr>
                   <td class="ps-4 fw-medium text-dark">
                     <div class="d-flex align-items-center gap-2">
                       <div
                         class="bg-primary-subtle text-primary rounded-circle p-1 d-flex justify-content-center align-items-center"
                         style="width: 32px; height: 32px;">
-                        <span class="small fw-bold">{{ f.username[:1]|upper }}</span>
+                        <span class="small fw-bold">{{ t.username[:1]|upper }}</span>
                       </div>
-                      {{ f.username }}
+                      {{ t.username }}
                     </div>
                   </td>
                   <td class="text-end pe-4">
-                    <form action="/admin/delete-faculty/{{ f.username }}" method="post"
-                      onsubmit="return confirm('Privileged Action: Remove faculty {{ f.username }}?');">
+                    <form action="/admin/delete-target/{{ t.username }}" method="post"
+                      onsubmit="return confirm('Privileged Action: Remove target {{ t.username }}?');">
                       <button class="btn btn-sm btn-light text-danger border-0 h-100">
                         Delete <i class="bi bi-trash ms-1"></i>
                       </button>
@@ -140,7 +140,7 @@
           {% else %}
           <div class="p-5 text-center text-muted">
             <i class="bi bi-people display-6 mb-3 d-block opacity-25"></i>
-            No faculty members registered yet.
+            No targets registered in the directory.
           </div>
           {% endif %}
         </div>
@@ -148,57 +148,55 @@
     </div>
   </div>
 
-  <!-- Feedback Database -->
+  <!-- Feedback Ledger -->
   <div class="row mt-4">
     <div class="col-12">
       <div class="card-custom p-0 overflow-hidden">
         <div class="p-4 border-bottom bg-light bg-opacity-50">
-          <h5 class="fw-bold mb-0"><i class="bi bi-database-fill-lock text-info me-2"></i>Encrypted Feedback Ledger</h5>
+          <h5 class="fw-bold mb-0"><i class="bi bi-database-fill-lock text-info me-2"></i>Audited Feedback Ledger
+            (Blockchain)</h5>
         </div>
 
-        {% if feedbacks %}
+        {% if feedback_list %}
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead>
               <tr>
-                <th class="ps-4">Faculty</th>
-                <th>Course</th>
-                <th>Ratings (K/C/P/S)</th>
-                <th>Avg</th>
-                <th style="width: 30%;">Comments</th>
+                <th class="ps-4">Target</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Avg Score</th>
+                <th style="width: 30%;">Feedback Description</th>
                 <th>Timestamp</th>
                 <th class="text-end pe-4">Manage</th>
               </tr>
             </thead>
             <tbody>
-              {% for fb in feedbacks %}
+              {% for f in feedback_list %}
               <tr>
-                <td class="ps-4 fw-bold text-primary">{{ fb.faculty_username }}</td>
-                <td><span class="badge bg-light text-dark border">{{ fb.course or "-" }}</span></td>
-                <td>
-                  <div class="d-flex gap-1 text-muted small font-monospace">
-                    <span title="Knowledge">{{ fb.knowledge }}</span>/
-                    <span title="Communication">{{ fb.communication }}</span>/
-                    <span title="Punctuality">{{ fb.punctuality }}</span>/
-                    <span title="Support">{{ fb.support }}</span>
-                  </div>
-                </td>
+                <td class="ps-4 fw-bold text-primary">{{ f.target_name }}</td>
+                <td><span class="badge bg-light text-dark border">{{ f.category or "-" }}</span></td>
                 <td>
                   <span
-                    class="badge {{ 'bg-success' if fb.avg >= 4 else 'bg-warning' if fb.avg >= 3 else 'bg-danger' }}">
-                    {{ fb.avg }}
+                    class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning' if f.priority == 'High' else 'bg-primary' if f.priority == 'Medium' else 'bg-info' }} rounded-pill px-2 py-1">
+                    {{ f.priority }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge {{ 'bg-success' if f.avg >= 4 else 'bg-warning' if f.avg >= 3 else 'bg-danger' }}">
+                    {{ f.avg }}
                   </span>
                 </td>
                 <td>
                   <div class="text-break text-secondary small" style="max-width: 400px;">
-                    {{ fb.comments }}
+                    {{ f.description }}
                   </div>
                 </td>
-                <td class="text-muted small">{{ fb.created_at[:10] }} <span class="text-secondary-subtle">{{
-                    fb.created_at[11:16] }}</span></td>
+                <td class="text-muted small">{{ f.created_at[:10] }} <span class="text-secondary-subtle">{{
+                    f.created_at[11:16] }}</span></td>
                 <td class="text-end pe-4">
-                  <form action="/admin/delete-feedback/{{ fb.id }}" method="post"
-                    onsubmit="return confirm('Soft delete this record? It will remain in blockchain history.');">
+                  <form action="/admin/delete-feedback/{{ f.id }}" method="post"
+                    onsubmit="return confirm('Soft delete this feedback? It will remain in blockchain history.');">
                     <button class="btn btn-sm btn-light text-danger border" title="Soft Delete">
                       <i class="bi bi-archive-fill"></i>
                     </button>
@@ -212,7 +210,7 @@
         {% else %}
         <div class="p-5 text-center text-muted">
           <i class="bi bi-inbox display-4 mb-3 d-block opacity-25"></i>
-          No feedback submissions found in the ledger.
+          No feedback found in the system ledger.
         </div>
         {% endif %}
       </div>

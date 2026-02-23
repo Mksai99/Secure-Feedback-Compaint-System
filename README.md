@@ -1,33 +1,34 @@
-# Secure Feedback System (Blockchain-Backed)
+# Secure Anonymous Feedback Platform (Blockchain-Backed)
 
-A secure, anonymous, and verifiable student feedback system built with **Flask**, **MongoDB**, and **Hash-Based Blockchain** Technology. This system ensures that student feedback is tamper-proof while maintaining controlled anonymity, which can be revealed only by authorized personnel under specific conditions with audit logging.
+A privacy-first, enterprise-grade anonymous feedback platform built with **Flask**, **MongoDB**, and **Immutable Hash-Based Blockchain** Technology. This system allows organizations, communities, and services to collect honest, anonymous feedback while ensuring data integrity and strictly controlled identity protection.
 
 ## 🚀 Key Features
 
 ### 🔐 Security & Integrity
-- **Blockchain Verification**: Every feedback submission is linked to the previous one via SHA-256 hashing. Any modification to past feedback invalidates the entire chain, detectable via the Admin Dashboard.
-- **Controlled Anonymity**: Student identities are encrypted using Fernet (AES). Faculty and Admins cannot see who sent the feedback.
-- **Identity Reveal Protocol**: Only the `Authority` role can decrypt a student's identity, and **every reveal is logged** in an immutable audit ledger with a mandatory reason.
+- **Blockchain Verification**: Every feedback entry is cryptographically linked to the previous one via SHA-256 hashing. Any unauthorized modification or deletion invalidates the chain, detectable via the Admin Control Center.
+- **Identity Protection**: Participant identities are encrypted using AES-256 (Fernet). Entities and Admins cannot see who provided the feedback.
+- **Controlled De-anonymization**: Only the `Moderator` role can unmask a participant's identity, and **every action is logged** in an immutable audit ledger with a mandatory justification.
 
 ### 👥 Role-Based Access Control
 The system features four distinct roles:
-1. **Student**: Can submit anonymous feedback for faculty.
-2. **Faculty**: Can view feedback received for their courses.
-3. **Admin**: Manages users (Faculty/Students), deletes feedback (soft delete), and monitors blockchain integrity.
-4. **Authority**: A special oversight role that can audit feedback and reveal identities in cases of policy violations (e.g., harassment).
+1. **Participant**: Can provide anonymous feedback with various indicators (Quality, Communication, etc.) and priority levels.
+2. **Entity**: Recipients of feedback who can view entries targetted at them (anonymously).
+3. **Admin**: Manages the user directory (Entities/Participants), performs maintenance, and monitors system health.
+4. **Moderator**: Professional oversight role authorized to audit feedback and initiate identity unmasking for verified policy necessity.
 
 ### 🎨 Modern UI/UX
-- **Institutional Design**: A clean, light-first professional interface using a deep blue and teal color palette.
-- **Responsive Layout**: Features a collapsible sidebar for easy navigation on all devices.
-- **User-Friendly**: Clear visual indicators for blockchain status, audit logs, and feedback ratings.
+- **Institutional Design**: A clean, light-first professional interface using a professional blue and trustworthy teal palette.
+- **Dashboard-Centric**: Intuitive navigation with a modern sidebar and role-specific views.
+- **Real-time Integrity**: Visual indicators for blockchain validity and a transparent audit trail for system accountability.
 
 ---
 
 ## 🛠️ Technology Stack
 - **Backend**: Python (Flask)
-- **Database**: MongoDB (Local)
+- **Database**: MongoDB (NoSQL)
 - **Frontend**: HTML5, CSS3, Bootstrap 5 (Custom "Institutional" Theme)
-- **Cryptography**: `hashlib` (SHA-256), `cryptography` (Fernet)
+- **Cryptography**: `hashlib` (SHA-256), `cryptography` (AES-256 Fernet)
+- **Data Integrity**: Custom Hash-Chain Implementation
 
 ---
 
@@ -52,34 +53,20 @@ pip install -r requirements.txt
 ```bash
 python app.py
 ```
-*Note: On the first run, a `secret.key` file will be generated for encryption. Keep this file secure.*
-
-### 4. Access the App
-Open your browser and navigate to:
-`http://127.0.0.1:5000`
+*Note: On the first run, a `secret.key` file will be generated. This key is used to decrypt participant identities and must be guarded as a high-security asset.*
 
 ---
 
-## 👤 Default Credentials (for Demo)
-The application creates default users if they don't exist:
+## 👤 Default Demo Credentials
 
 | Role | Username | Password |
 |------|----------|----------|
-| **Admin** | `admin` | `admin123` |
-| **Authority** | `authority` | `auth123` |
+| **Administrator** | `admin` | `admin123` |
+| **Moderator** | `moderator` | `mod123` |
 
-*You can create Student and Faculty accounts via the Admin Dashboard.*
-
----
-
-## 📸 Screenshots
-
-- **Login Page**: Secure entry point for all roles.
-- **Student Dashboard**: Simple star rating and comment form.
-- **Admin Dashboard**: System status indicators showing "Blockchain Valid/Invalid".
-- **Authority Console**: Audit logs and identity reveal interface.
+*Participant and Entity accounts can be provisioned via the Admin Control Center.*
 
 ---
 
 ## 🛡️ License
-This project is for educational and portfolio purposes.
+This project is for educational and professional portfolio purposes.

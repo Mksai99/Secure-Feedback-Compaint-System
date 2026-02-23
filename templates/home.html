@@ -8,19 +8,20 @@
     <div class="col-12">
       <div class="p-5 rounded-4 bg-primary text-white position-relative overflow-hidden shadow-lg">
         <div class="position-relative z-1">
-          <h1 class="fw-bold display-5">Welcome back, {{ session.username }}!</h1>
-          <p class="lead opacity-75">Secure Feedback System Dashboard</p>
-          <p class="mb-4">You are logged in as <span class="badge bg-white text-primary text-uppercase">{{ session.role
+          <h1 class="fw-bold display-5">Welcome, {{ session.username }}!</h1>
+          <p class="lead opacity-75">Secure Feedback Platform Control Panel</p>
+          <p class="mb-4">Role Access: <span class="badge bg-white text-primary text-uppercase">{{
+              session.role|replace("authority", "Authority")|capitalize
               }}</span></p>
 
           <div class="d-flex gap-3">
-            {% if session.role == 'student' %}
-            <a href="/student/feedback" class="btn btn-light fw-bold px-4 py-2">
+            {% if session.role == 'user' %}
+            <a href="/user/provide-feedback" class="btn btn-light fw-bold px-4 py-2">
               <i class="bi bi-pencil-square me-2"></i> Submit Feedback
             </a>
-            {% elif session.role == 'faculty' %}
-            <a href="/faculty/feedbacks" class="btn btn-light fw-bold px-4 py-2">
-              <i class="bi bi-inbox me-2"></i> View Incoming Feedback
+            {% elif session.role == 'target' %}
+            <a href="/target/view-feedback" class="btn btn-light fw-bold px-4 py-2">
+              <i class="bi bi-inbox me-2"></i> View Feedback
             </a>
             {% elif session.role == 'authority' %}
             <a href="/authority" class="btn btn-light fw-bold px-4 py-2">
@@ -28,7 +29,7 @@
             </a>
             {% elif session.role == 'admin' %}
             <a href="/admin" class="btn btn-light fw-bold px-4 py-2">
-              <i class="bi bi-gear me-2"></i> Admin System
+              <i class="bi bi-gear me-2"></i> Admin Control Center
             </a>
             {% endif %}
           </div>
@@ -49,9 +50,10 @@
           </div>
           <h5 class="fw-bold mb-0">Security Status</h5>
         </div>
-        <p class="text-muted">System integrity is verified by blockchain.</p>
+        <p class="text-muted">System integrity is verified by blockchain technology.</p>
         <div class="mt-auto pt-3 border-top">
-          <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i> Active</span>
+          <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i> System
+            Active</span>
         </div>
       </div>
     </div>
@@ -64,9 +66,10 @@
           </div>
           <h5 class="fw-bold mb-0">Anonymity</h5>
         </div>
-        <p class="text-muted">Your identity is cryptographically protected.</p>
+        <p class="text-muted">Your identity is cryptographically protected and sealed.</p>
         <div class="mt-auto pt-3 border-top">
-          <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i> Protected</span>
+          <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i> Identity
+            Protected</span>
         </div>
       </div>
     </div>
@@ -96,14 +99,15 @@
     <div class="d-inline-flex align-items-center justify-content-center p-3 bg-primary-subtle rounded-circle mb-4">
       <i class="bi bi-shield-lock-fill fs-1 text-primary"></i>
     </div>
-    <h1 class="display-4 fw-bold mb-3 text-primary">Secure Feedback System</h1>
+    <h1 class="display-4 fw-bold mb-3 text-primary">Secure Anonymous Feedback Platform</h1>
     <p class="lead text-muted mb-5 mx-auto" style="max-width: 600px;">
-      An institutional-grade platform for honest, anonymous, and verifiable feedback, backed by blockchain technology.
+      A privacy-first, enterprise-grade platform for collecting honest, anonymous feedback within organizations,
+      communities, and services.
     </p>
 
     <div class="d-flex justify-content-center gap-3 mb-5">
       <a href="/login" class="btn btn-primary btn-lg px-5 py-3 shadow-lg rounded-pill">
-        Get Started <i class="bi bi-arrow-right-short"></i>
+        Access Portal <i class="bi bi-arrow-right-short"></i>
       </a>
     </div>
 
@@ -112,25 +116,25 @@
       <div class="col-md-4">
         <div class="p-4 rounded-4 bg-white border h-100 shadow-sm">
           <div class="text-primary fs-2 mb-3"><i class="bi bi-shield-shaded"></i></div>
-          <h4 class="fw-bold fs-5">Controlled Anonymity</h4>
-          <p class="text-muted small">Cryptographically secured identities that can only be revealed by proper authority
-            with audit trails.</p>
+          <h4 class="fw-bold fs-5">Identity Protection</h4>
+          <p class="text-muted small">Cryptographically secured identities ensure participants can speak freely without
+            fear of exposure.</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="p-4 rounded-4 bg-white border h-100 shadow-sm">
           <div class="text-secondary fs-2 mb-3"><i class="bi bi-link-45deg"></i></div>
-          <h4 class="fw-bold fs-5">Blockchain Integrity</h4>
-          <p class="text-muted small">Every feedback submission is hashed and linked in an immutable ledger to prevent
-            tampering.</p>
+          <h4 class="fw-bold fs-5">Immutable Integrity</h4>
+          <p class="text-muted small">Every piece of feedback is hashed and linked in a blockchain ledger to prevent
+            unauthorized alterations or deletion.</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="p-4 rounded-4 bg-white border h-100 shadow-sm">
           <div class="text-info fs-2 mb-3"><i class="bi bi-journal-check"></i></div>
-          <h4 class="fw-bold fs-5">Institutional Audit</h4>
-          <p class="text-muted small">Comprehensive logging and oversight tools ensure the system is used ethically and
-            responsibly.</p>
+          <h4 class="fw-bold fs-5">Ethical Moderation</h4>
+          <p class="text-muted small">Professional tools and audit trails ensure the platform is used responsibly and in
+            accordance with organizational policies.</p>
         </div>
       </div>
     </div>

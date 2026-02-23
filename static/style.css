@@ -1,6 +1,6 @@
 /* 
-   Secure Feedback System - Modern Institutional Theme (2024-2026)
-   Designed for Trust, Clarity, and Professionalism.
+   Secure Anonymous Feedback Platform - Modern Institutional Theme (2024-2026)
+   Designed for Trust, Privacy, and Accountability.
 */
 
 :root {
@@ -404,15 +404,17 @@ h6 {
 
 .star-rating label {
     font-size: 1.75rem;
-    color: #CBD5E0; /* Muted grey for unfilled stars */
+    color: #CBD5E0;
+    /* Muted grey for unfilled stars */
     cursor: pointer;
     transition: color 0.15s ease-in-out, transform 0.15s ease-in-out;
 }
 
 .star-rating label:hover,
-.star-rating label:hover ~ label,
-.star-rating input:checked ~ label {
-    color: #FBBF24; /* Golden yellow for filled stars */
+.star-rating label:hover~label,
+.star-rating input:checked~label {
+    color: #FBBF24;
+    /* Golden yellow for filled stars */
 }
 
 .star-rating label:hover {
