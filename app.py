@@ -631,4 +631,6 @@ def authority_audit_logs():
 if __name__ == "__main__":
     create_default_admin()
     create_default_authority()
-    app.run(debug=True)
+    # Disabling the reloader for maximum stability on Windows with Python 3.13.
+    # Note: You must manually restart the server after code changes.
+    app.run(debug=True, use_reloader=False)

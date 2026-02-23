@@ -389,6 +389,40 @@ h6 {
     }
 }
 
+
+/* --- Star Rating System --- */
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 1.75rem;
+    color: #CBD5E0; /* Muted grey for unfilled stars */
+    cursor: pointer;
+    transition: color 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+    color: #FBBF24; /* Golden yellow for filled stars */
+}
+
+.star-rating label:hover {
+    transform: scale(1.2);
+}
+
+.star-rating label i {
+    transition: all 0.2s;
+}
+
 /* Mobile Navbar */
 .navbar-mobile {
     background: var(--bg-surface);
