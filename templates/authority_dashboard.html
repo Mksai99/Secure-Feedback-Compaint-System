@@ -26,7 +26,7 @@
     </div>
   </div>
 
-  <div class="card-custom p-0 overflow-hidden">
+  <div class="card-custom p-0">
     <div class="p-4 border-bottom bg-light bg-opacity-50">
       <h5 class="fw-bold mb-0 text-dark">
         <i class="bi bi-search me-2"></i>Feedback Repository
@@ -36,7 +36,7 @@
     <div class="p-0">
       {% if feedback_list %}
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" style="min-height: 400px;">
           <thead class="bg-light">
             <tr>
               <th class="ps-4">Target</th>
@@ -93,8 +93,8 @@
                 </div>
 
                 <div
-                  class="collapse mt-3 text-start position-absolute end-0 me-5 shadow-lg bg-white rounded-3 z-3 border"
-                  style="width: 300px; margin-top: 10px !important;" id="revealForm{{ loop.index }}">
+                  class="collapse mt-2 text-start shadow-lg bg-white rounded-3 border"
+                  style="width: 300px; position: absolute; right: 2rem; z-index: 1050;" id="revealForm{{ loop.index }}">
                   <div class="p-3">
                     <h6 class="fw-bold mb-2 small text-danger">Authorize Identity De-anonymization</h6>
                     <form action="/authority/reveal/{{ f.id }}" method="post">
@@ -103,7 +103,7 @@
                         <textarea name="reason" class="form-control form-control-sm" rows="2"
                           placeholder="Reference policy or case details..." required></textarea>
                       </div>
-                      <button type="submit" class="btn btn-sm btn-danger w-100">
+                      <button type="submit" class="btn btn-sm btn-danger w-100 mt-2">
                         <i class="bi bi-fingerprint me-1"></i> Confirm Identity Unlock
                       </button>
                     </form>

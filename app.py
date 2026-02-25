@@ -432,13 +432,14 @@ def target_view_feedback():
 @login_required(role="admin")
 def admin_dashboard():
     target_list = list(targets_col.find({"role": "target"}, {"username": 1, "_id": 0}))
+    user_list = list(users_col.find({"role": "user"}, {"username": 1, "_id": 0}))
     
     feedback_list = []
     compromised_ids = []
     chain_valid = True
 
     if not contract:
-        return render_template("admin_dashboard.html", target_list=target_list, feedback_list=[], chain_valid=False, title="Admin Dashboard", heading="Chain Not Connected")
+        return render_template("admin_dashboard.html", target_list=target_list, user_list=user_list, feedback_list=[], chain_valid=False, title="Admin Dashboard", heading="Chain Not Connected")
 
     try:
         # Blockchain is the ONLY source of truth — No MongoDB dependency
@@ -485,6 +486,7 @@ def admin_dashboard():
     return render_template(
         "admin_dashboard.html",
         target_list=target_list,
+        user_list=user_list,
         feedback_list=feedback_list,
         chain_valid=chain_valid,
         compromised_ids=[],
@@ -517,6 +519,13 @@ def admin_add_user():
 @login_required(role="admin")
 def admin_delete_target(username):
     targets_col.delete_one({"username": username, "role": "target"})
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/delete-user/<username>", methods=["POST"])
+@login_required(role="admin")
+def admin_delete_user(username):
+    users_col.delete_one({"username": username, "role": "user"})
     return redirect(url_for("admin_dashboard"))
 
 
@@ -666,12 +675,44 @@ def authority_reveal(fb_id):
     )
 
 
-# authority_audit_logs removed: System uses on-chain event logs for auditing.
+@app.route("/authority/audit-logs")
+@login_required(role="authority")
+def authority_audit_logs():
+    if not contract:
+        return "Blockchain not connected", 503
+    
+    all_logs = []
+    try:
+        on_chain_ids = contract.functions.getAllFeedbackIds().call()
+        for fid in on_chain_ids:
+            # getAuditLogs(string) -> (string action, string performedBy, string reason, uint256 timestamp)[]
+            logs = contract.functions.getAuditLogs(fid).call()
+            for log in logs:
+                all_logs.append({
+                    "feedback_id": fid,
+                    "action": log[0],
+                    "performed_by": log[1],
+                    "reason": log[2],
+                    "timestamp": datetime.fromtimestamp(log[3]).isoformat() if log[3] > 0 else "Unknown"
+                })
+        
+        # Sort logs by timestamp descending
+        all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
+    except Exception as e:
+        print(f"BLOCKCHAIN AUDIT LOG ERROR: {e}")
+    
+    return render_template(
+        "audit_logs.html",
+        logs=all_logs,
+        title="Audit Logs",
+        heading="Authority Audit Trail"
+    )
 
 
 # ---------- Main ----------
 if __name__ == "__main__":
     create_default_admin()
     create_default_authority()
-    # Enabling reloader to ensure code changes are picked up automatically.
-    app.run(debug=True, use_reloader=True)
+    # Disabling reloader to ensure code changes are picked up automatically.
+    # Note: disabled reloader to fix WinError 10038 on Windows + Python 3.13
+    app.run(debug=True, use_reloader=False)
