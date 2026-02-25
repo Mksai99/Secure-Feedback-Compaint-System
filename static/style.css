@@ -430,3 +430,27 @@ h6 {
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border-color);
 }
+
+/* --- Blockchain Specific --- */
+.bg-indigo-subtle {
+    background-color: #EEF2FF !important;
+    border: 1px solid #E0E7FF !important;
+}
+
+.bg-success-subtle {
+    background-color: var(--success-bg) !important;
+    border: 1px solid rgba(5, 150, 105, 0.1) !important;
+}
+
+.font-monospace {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+}
+
+.badge-blockchain {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}

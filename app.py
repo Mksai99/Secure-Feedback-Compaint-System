@@ -6,6 +6,10 @@ from bson.objectid import ObjectId
 import hashlib
 from cryptography.fernet import Fernet
 import os
+from web3 import Web3
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "any_random_long_secret_here"
@@ -15,7 +19,7 @@ MONGO_URI = "mongodb://localhost:27017/"
 client = MongoClient(MONGO_URI)
 db = client["feedback_platform_db"]
 
-# Migration: Rename old collections and fields if they exist
+# Migration: Rename old collections if they exist (authentication only)
 def migrate_collections():
     # 1. Rename collections
     old_to_new = {
@@ -28,29 +32,39 @@ def migrate_collections():
         if old in existing_collections and new not in existing_collections:
             db[old].rename(new)
     
-    # 2. Rename fields in feedback collection
-    db["feedback"].update_many(
-        {}, 
-        {"$rename": {
-            "participant_hash": "user_hash", 
-            "encrypted_participant_id": "encrypted_user_id"
-        }}
-    )
-
 migrate_collections()
 
-# Separate collections for each role
+# Separate collections for each role (Authentication Only)
 users_col = db["users"]             # {username, password, role="user"}
 targets_col = db["targets"]         # {username, password, role="target"}
 admins_col = db["admins"]           # {username, password, role="admin"}
 authorities_col = db["authorities"] # {username, password, role="authority"}
 
-feedback_col = db["feedback"]       # feedback documents
-blocks_col = db["blocks"]           # blockchain
-audit_col = db["audit_logs"]        # audit logs
-
-# secret salt for user anonymity
+# secret salt for user anonymity (stored on-chain)
 USER_SALT = "some_fixed_random_salt"
+
+# ---------- Real Blockchain (Web3) Setup ----------
+RPC_URL = os.getenv("RPC_URL", "http://127.0.0.1:8545")
+ACCOUNT_ADDRESS = os.getenv("ACCOUNT_ADDRESS")
+PRIVATE_KEY = os.getenv("PRIVATE_KEY")
+
+w3 = Web3(Web3.HTTPProvider(RPC_URL))
+contract = None
+
+def load_contract():
+    global contract
+    try:
+        if os.path.exists("contract_artifacts.json"):
+            with open("contract_artifacts.json", "r") as f:
+                artifacts = json.load(f)
+            contract = w3.eth.contract(address=artifacts["address"], abi=artifacts["abi"])
+            print(f"Connected to smart contract at {artifacts['address']}")
+        else:
+            print("Warning: contract_artifacts.json not found. Deploy the contract first.")
+    except Exception as e:
+        print(f"Error loading contract: {e}")
+
+load_contract()
 
 # ---------- Encryption Setup ----------
 KEY_FILE = "secret.key"
@@ -109,149 +123,73 @@ def create_default_authority():
             "role": "authority"
         })
 
-def get_last_block():
-    last_block = blocks_col.find_one(sort=[("idx", -1)])
-    if last_block:
-        return {"idx": last_block["idx"], "hash": last_block["hash"]}
-    return None
+# get_last_block removed (redundant)
 
 
-def create_block(feedback_id: ObjectId, feedback_data: dict):
+def create_block(feedback_id: ObjectId, feedback_data: dict, encrypted_user: str = "", encrypted_desc: str = "",
+                 target_name: str = "", category: str = "", priority: str = "", organization_id: str = "ORG-001",
+                 rating1: int = 0, rating2: int = 0, rating3: int = 0, rating4: int = 0, average_rating: float = 0.0):
     """
-    Create a blockchain block for the given feedback
-    AND update the chain_meta (head + total_blocks).
+    Records ALL feedback data on-chain — blockchain is the single source of truth.
+    Ratings are stored as uint8 (0-5), averageRating as uint256 * 100 (e.g. 4.25 → 425).
     """
-    data_json = json.dumps(feedback_data, sort_keys=True)
-    data_hash = sha256(data_json)
+    print(f"DEBUG: create_block called for fb_id: {feedback_id}")
+    if not contract or not ACCOUNT_ADDRESS or not PRIVATE_KEY:
+        print(f"DEBUG: Blockchain config missing - Contract: {bool(contract)}, Account: {ACCOUNT_ADDRESS}, Key: {'SET' if PRIVATE_KEY else 'MISSING'}")
+        return
 
-    # Get last block from blocks collection
-    last_block = blocks_col.find_one(sort=[("idx", -1)])
+    try:
+        data_json = json.dumps(feedback_data, sort_keys=True)
+        data_hash = sha256(data_json)
+        fb_id_str = str(feedback_id)
+        # Convert average_rating to integer * 100 for on-chain storage
+        avg_rating_int = int(round(average_rating * 100))
 
-    if last_block:
-        idx = last_block["idx"] + 1
-        prev_hash = last_block["hash"]
-    else:
-        idx = 0
-        prev_hash = "0"
+        print(f"DEBUG: Preparing transaction for {fb_id_str} with ratings {rating1},{rating2},{rating3},{rating4} avg={avg_rating_int}...")
+        nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
+        # Call recordFeedback with all fields — blockchain is the authoritative store
+        txn = contract.functions.recordFeedback((
+            fb_id_str,
+            data_hash,
+            encrypted_user,
+            encrypted_desc,
+            target_name,
+            category,
+            priority,
+            organization_id,
+            rating1,
+            rating2,
+            rating3,
+            rating4,
+            avg_rating_int
+        )).build_transaction({
+            "chainId": int(os.getenv("CHAIN_ID", 1337)),
+            "from": ACCOUNT_ADDRESS,
+            "nonce": nonce,
+            "gasPrice": w3.eth.gas_price
+        })
 
-    timestamp = datetime.utcnow().isoformat()
-    block_string = f"{idx}{timestamp}{data_hash}{prev_hash}"
-    block_hash = sha256(block_string)
+        print(f"DEBUG: Signing transaction...")
+        signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
+        print(f"DEBUG: Sending transaction...")
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        print(f"DEBUG: Waiting for receipt...")
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-    # Insert new block
-    blocks_col.insert_one({
-        "idx": idx,
-        "feedback_id": feedback_id,
-        "timestamp": timestamp,
-        "data_hash": data_hash,
-        "prev_hash": prev_hash,
-        "hash": block_hash
-    })
-
-    # ---- Update chain_meta ----
-    chain_meta_col = db["chain_meta"]
-    meta = chain_meta_col.find_one({"_id": "head"})
-
-    if meta:
-        total_blocks = meta.get("total_blocks", 0) + 1
-    else:
-        total_blocks = 1
-
-    chain_meta_col.update_one(
-        {"_id": "head"},
-        {
-            "$set": {
-                "last_idx": idx,
-                "last_hash": block_hash,
-                "total_blocks": total_blocks
-            }
-        },
-        upsert=True
-    )
-
-
-
-def verify_chain() -> bool:
-    """
-    Strict verification:
-    - There must be at least one block
-    - chain_meta must exist
-    - Every block must:
-        * point to an existing feedback
-        * match feedback data (detect edits)
-        * have correct prev_hash & hash link
-    - Final block index + hash + count must match chain_meta
-    """
-    chain_meta_col = db["chain_meta"]
-    meta = chain_meta_col.find_one({"_id": "head"})
-    if not meta:
+        # No MongoDB mirroring - Blockchain is the only store
+        print(f"SUCCESS: Feedback {fb_id_str} recorded on-chain with ratings. TX: {tx_receipt.transactionHash.hex()}")
+        return True
+    except Exception as e:
+        print(f"CRITICAL BLOCKCHAIN ERROR in create_block for {feedback_id}: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
-    expected_total = meta.get("total_blocks", 0)
-    if expected_total <= 0:
-        return False
 
-    # Get all blocks ordered by idx
-    blocks = list(blocks_col.find().sort("idx", 1))
-    if not blocks:
-        return False
 
-    if len(blocks) != expected_total:
-        return False
 
-    prev_hash = "0"
-    count = 0
+# verify_chain removed: MongoDB no longer stores feedback data.
 
-    for b in blocks:
-        count += 1
-
-        # 1) Check link to previous block
-        if b["prev_hash"] != prev_hash:
-            return False
-
-        # 2) Fetch feedback document
-        fb = feedback_col.find_one({"_id": b["feedback_id"]})
-        if not fb:
-            return False
-
-        # 3) Rebuild data JSON exactly as in create_block
-        fb_chain = {
-            "id": str(fb["_id"]),
-            "target_name": fb["target_name"],
-            "category": fb.get("category"),
-            "description": fb["description"],
-            "priority": fb.get("priority"),
-            "created_at": fb["created_at"],
-            "user_hash": fb["user_hash"],
-            "organization_id": fb.get("organization_id"),
-            "ratings": fb.get("ratings", {}),
-            "average_rating": fb.get("average_rating", 0),
-        }
-        calc_data_hash = sha256(json.dumps(fb_chain, sort_keys=True))
-
-        # 4) data_hash must match
-        if calc_data_hash != b["data_hash"]:
-            return False
-
-        # 5) block hash must match
-        calc_block_hash = sha256(
-            f"{b['idx']}{b['timestamp']}{b['data_hash']}{b['prev_hash']}"
-        )
-        if calc_block_hash != b["hash"]:
-            return False
-
-        prev_hash = b["hash"]
-
-    # 6) Last block must match chain_meta info
-    last_block = blocks[-1]
-    if last_block["idx"] != meta["last_idx"]:
-        return False
-    if last_block["hash"] != meta["last_hash"]:
-        return False
-    if count != expected_total:
-        return False
-
-    return True
 
 
 
@@ -348,6 +286,8 @@ def user_submit_feedback():
         target_name = request.form.get("target_username")
         category = request.form.get("category")
         description = request.form.get("description")
+        print(f"DEBUG: Feedback submission received for {target_name}. Description: {description}")
+
         priority = request.form.get("priority", "Medium")
         created_at = datetime.utcnow().isoformat()
 
@@ -363,30 +303,10 @@ def user_submit_feedback():
         # anonymized user id
         user_hash = sha256(user_username + USER_SALT)
 
-        feedback_doc = {
-            "target_name": target_name,
-            "category": category,
-            "description": description,
-            "priority": priority,
-            "created_at": created_at,
-            "user_hash": user_hash,
-            "organization_id": "ORG-001", # static demo ID
-            "ratings": {
-                "indicator_1": rating_1,
-                "indicator_2": rating_2,
-                "indicator_3": rating_3,
-                "indicator_4": rating_4,
-            },
-            "average_rating": avg_rating,
-            "deleted": False,
-            "encrypted_user_id": encrypt_data(user_username),
-            "reveal_status": "sealed",
-        }
+        # Generate ID manually to ensure consistency between Blockchain and MongoDB
+        feedback_id = ObjectId()
 
-        result = feedback_col.insert_one(feedback_doc)
-        feedback_id = result.inserted_id
-
-        # blockchain data
+        # 1. Prepare Blockchain Data
         fb_for_chain = {
             "id": str(feedback_id),
             "target_name": target_name,
@@ -395,11 +315,43 @@ def user_submit_feedback():
             "priority": priority,
             "created_at": created_at,
             "user_hash": user_hash,
-            "organization_id": feedback_doc["organization_id"],
-            "ratings": feedback_doc["ratings"],
+            "organization_id": "ORG-001",
+            "ratings": {
+                "indicator_1": rating_1,
+                "indicator_2": rating_2,
+                "indicator_3": rating_3,
+                "indicator_4": rating_4,
+            },
             "average_rating": avg_rating,
         }
-        create_block(feedback_id, fb_for_chain)
+
+        encrypted_user = encrypt_data(user_username)
+        encrypted_desc = encrypt_data(description)
+
+        # 2. Blockchain Write (Single Source of Truth)
+        # Attempt to record on blockchain first. If this fails, we do NOT save to MongoDB.
+        print(f"DEBUG: Attempting Blockchain-First write for {feedback_id}")
+        tx_success = create_block(
+            feedback_id,
+            fb_for_chain,
+            encrypted_user,
+            encrypted_desc,
+            target_name=target_name,
+            category=category,
+            priority=priority,
+            organization_id="ORG-001",
+            rating1=rating_1,
+            rating2=rating_2,
+            rating3=rating_3,
+            rating4=rating_4,
+            average_rating=avg_rating
+        )
+
+        if tx_success:
+            print(f"DEBUG: Feedback {feedback_id} recorded successfully on-chain.")
+        else:
+            print(f"CRITICAL: Blockchain write FAILED for {feedback_id}.")
+            return "Error: Blockchain transaction failed. Feedback not submitted.", 500
 
         return redirect(url_for("user_submit_feedback"))
 
@@ -420,29 +372,52 @@ def user_submit_feedback():
 @login_required(role="target")
 def target_view_feedback():
     target_username = session["username"]
-    fbs = list(
-        feedback_col.find({
-            "target_name": target_username,
-            "deleted": {"$ne": True}
-        }).sort("created_at", -1)
-    )
-
     feedback_list = []
-    for f in fbs:
-        ratings = f.get("ratings", {})
-        feedback_list.append(
-            {
-                "category": f.get("category"),
-                "description": f.get("description"),
-                "priority": f.get("priority"),
-                "created_at": f.get("created_at"),
-                "avg": f.get("average_rating", 0),
-                "ind1": ratings.get("indicator_1", "-"),
-                "ind2": ratings.get("indicator_2", "-"),
-                "ind3": ratings.get("indicator_3", "-"),
-                "ind4": ratings.get("indicator_4", "-"),
-            }
+
+    if not contract:
+        return render_template(
+            "view_feedback.html",
+            feedback_list=[],
+            title="Received Feedback",
+            heading="Target Panel — Blockchain Not Connected"
         )
+
+    try:
+        # Blockchain is the only source of truth — no MongoDB reads
+        on_chain_ids = contract.functions.getAllFeedbackIds().call()
+        for fid in on_chain_ids:
+            # getFeedbackCore: 0:dataHash 1:encUser 2:encDesc 3:targetName 4:category 5:priority 6:orgId
+            # getFeedbackMeta: 0:r1 1:r2 2:r3 3:r4 4:avgRating 5:revealStatus 6:timestamp 7:exists
+            core = contract.functions.getFeedbackCore(fid).call()
+            meta = contract.functions.getFeedbackMeta(fid).call()
+            if not meta[7]:  # exists
+                continue
+            if core[3] != target_username:
+                continue
+
+            try:
+                dec_desc = decrypt_data(core[2])
+            except Exception:
+                dec_desc = "[DECRYPTION FAILED]"
+
+            avg = meta[4] / 100.0 if meta[4] else 0.0
+            created_at = datetime.fromtimestamp(meta[6]).isoformat() if meta[6] > 0 else "Unknown"
+
+            feedback_list.append({
+                "category": core[4],
+                "description": dec_desc,
+                "priority": core[5],
+                "created_at": created_at,
+                "avg": round(avg, 2),
+                "ind1": meta[0],
+                "ind2": meta[1],
+                "ind3": meta[2],
+                "ind4": meta[3],
+            })
+
+        feedback_list.sort(key=lambda x: x["created_at"], reverse=True)
+    except Exception as e:
+        print(f"TARGET DASHBOARD BLOCKCHAIN ERROR: {e}")
 
     return render_template(
         "view_feedback.html",
@@ -457,32 +432,62 @@ def target_view_feedback():
 @login_required(role="admin")
 def admin_dashboard():
     target_list = list(targets_col.find({"role": "target"}, {"username": 1, "_id": 0}))
-    fbs = list(
-        feedback_col.find({
-            "deleted": {"$ne": True}
-        }).sort("created_at", -1)
-    )
-
+    
     feedback_list = []
-    for f in fbs:
-        feedback_list.append(
-            {
-                "id": str(f["_id"]),
-                "target_name": f.get("target_name"),
-                "category": f.get("category"),
-                "description": f.get("description"),
-                "priority": f.get("priority"),
-                "created_at": f.get("created_at"),
-                "avg": f.get("average_rating", 0),
-            }
-        )
+    compromised_ids = []
+    chain_valid = True
 
-    chain_valid = verify_chain()
+    if not contract:
+        return render_template("admin_dashboard.html", target_list=target_list, feedback_list=[], chain_valid=False, title="Admin Dashboard", heading="Chain Not Connected")
+
+    try:
+        # Blockchain is the ONLY source of truth — No MongoDB dependency
+        on_chain_ids = contract.functions.getAllFeedbackIds().call()
+
+        for fid in on_chain_ids:
+            # getFeedbackCore: 0:dataHash 1:encUser 2:encDesc 3:targetName 4:category 5:priority 6:orgId
+            core = contract.functions.getFeedbackCore(fid).call()
+            # getFeedbackMeta: 0:r1 1:r2 2:r3 3:r4 4:avgRating 5:revealStatus 6:timestamp 7:exists
+            meta = contract.functions.getFeedbackMeta(fid).call()
+            
+            if not meta[7]:  # exists
+                continue
+
+            try:
+                dec_desc = decrypt_data(core[2])
+            except Exception:
+                dec_desc = "[DECRYPTION FAILED]"
+
+            avg = meta[4] / 100.0 if meta[4] else 0.0
+            created_at = datetime.fromtimestamp(meta[6]).isoformat() if meta[6] > 0 else "Unknown"
+
+            fb_item = {
+                "id": fid,
+                "target_name": core[3],
+                "category": core[4],
+                "description": dec_desc,
+                "priority": core[5],
+                "created_at": created_at,
+                "avg": round(avg, 2),
+                "reveal_status": meta[5],
+                "tx_hash": "BLOCKCHAIN-SOURCE",
+                "status": "Verified"
+            }
+            feedback_list.append(fb_item)
+
+        feedback_list.sort(key=lambda x: x['created_at'], reverse=True)
+        chain_valid = True
+
+    except Exception as e:
+        print(f"DASHBOARD ERROR: {e}")
+        chain_valid = False
+
     return render_template(
         "admin_dashboard.html",
         target_list=target_list,
         feedback_list=feedback_list,
         chain_valid=chain_valid,
+        compromised_ids=[],
         title="Administrator Control Center",
         heading="Platform Administration",
     )
@@ -515,43 +520,73 @@ def admin_delete_target(username):
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/delete-feedback/<fb_id>", methods=["POST"])
-@login_required(role="admin")
-def admin_delete_feedback(fb_id):
-    try:
-        rid = ObjectId(fb_id)
-    except Exception:
-        return redirect(url_for("admin_dashboard"))
+# Admin Deletion/Recovery/Sync removed: System is now Blockchain-Only and immutable.
 
-    feedback_col.update_one(
-        {"_id": rid},
-        {"$set": {"deleted": True, "deleted_at": datetime.utcnow().isoformat()}}
-    )
-    return redirect(url_for("admin_dashboard"))
+@app.route("/debug/blockchain")
+def debug_blockchain():
+    if not contract:
+        return {"status": "error", "message": "No contract loaded"}
+    try:
+        count = contract.functions.totalFeedbackCount().call()
+        ids = contract.functions.getAllFeedbackIds().call()
+        return {
+            "address": contract.address,
+            "count": count,
+            "ids": ids,
+            "account": ACCOUNT_ADDRESS,
+            "is_connected": w3.is_connected()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # ----- Authority -----
 @app.route("/authority")
 @login_required(role="authority")
 def authority_dashboard():
-    fbs = list(
-        feedback_col.find({
-            "deleted": {"$ne": True}
-        }).sort("created_at", -1)
-    )
-
     feedback_list = []
-    for f in fbs:
-        feedback_list.append({
-            "id": str(f["_id"]),
-            "target_name": f.get("target_name"),
-            "category": f.get("category"),
-            "description": f.get("description"),
-            "priority": f.get("priority"),
-            "created_at": f.get("created_at"),
-            "avg": f.get("average_rating", 0),
-            "reveal_status": f.get("reveal_status", "sealed"),
-        })
+
+    if not contract:
+        return render_template(
+            "authority_dashboard.html",
+            feedback_list=[],
+            title="Authority Oversight",
+            heading="Authority Panel — Blockchain Not Connected"
+        )
+
+    try:
+        # Blockchain is the ONLY source of truth — no MongoDB feedback reads
+        on_chain_ids = contract.functions.getAllFeedbackIds().call()
+        for fid in on_chain_ids:
+            # getFeedbackCore: 0:dataHash 1:encUser 2:encDesc 3:targetName 4:category 5:priority 6:orgId
+            # getFeedbackMeta: 0:r1 1:r2 2:r3 3:r4 4:avgRating 5:revealStatus 6:timestamp 7:exists
+            core = contract.functions.getFeedbackCore(fid).call()
+            meta = contract.functions.getFeedbackMeta(fid).call()
+            if not meta[7]:  # exists
+                continue
+
+            try:
+                dec_desc = decrypt_data(core[2])
+            except Exception:
+                dec_desc = "[DECRYPTION FAILED]"
+
+            avg = meta[4] / 100.0 if meta[4] else 0.0
+            created_at = datetime.fromtimestamp(meta[6]).isoformat() if meta[6] > 0 else "Unknown"
+
+            feedback_list.append({
+                "id": fid,
+                "target_name": core[3],
+                "category": core[4],
+                "description": dec_desc,
+                "priority": core[5],
+                "created_at": created_at,
+                "avg": round(avg, 2),
+                "reveal_status": meta[5],   # directly from blockchain
+            })
+
+        feedback_list.sort(key=lambda x: x["created_at"], reverse=True)
+    except Exception as e:
+        print(f"AUTHORITY DASHBOARD BLOCKCHAIN ERROR: {e}")
 
     return render_template(
         "authority_dashboard.html",
@@ -568,38 +603,59 @@ def authority_reveal(fb_id):
     if not reason:
         return "Reason is mandatory", 400
 
+    if not contract:
+        return "Blockchain not connected — cannot perform identity reveal", 503
+
+    # ── 1. Fetch encrypted identity from Blockchain (sole source of truth) ──
+    real_identity = "[NOT FOUND ON BLOCKCHAIN]"
     try:
-        rid = ObjectId(fb_id)
-    except:
-        return "Invalid ID", 400
+        core = contract.functions.getFeedbackCore(str(fb_id)).call()
+        meta = contract.functions.getFeedbackMeta(str(fb_id)).call()
+        if not meta[7]:  # exists
+            return "Feedback record not found on blockchain", 404
 
-    fb = feedback_col.find_one({"_id": rid})
-    if not fb:
-        return "Feedback record not found", 404
+        encrypted_id = core[1]  # encryptedUser
+        print(f"DEBUG: Fetched encryptedUser from Blockchain for {fb_id}")
 
-    # Decrypt
-    encrypted_id = fb.get("encrypted_user_id")
-    real_identity = "Unknown (Manual Entry)"
-    if encrypted_id:
         try:
             real_identity = decrypt_data(encrypted_id)
         except Exception as e:
             real_identity = f"Decryption Failed: {str(e)}"
+    except Exception as e:
+        print(f"Blockchain Fetch Error during Reveal: {e}")
+        return f"Blockchain error during reveal: {str(e)}", 500
 
-    # Update status
-    feedback_col.update_one(
-        {"_id": rid},
-        {"$set": {"reveal_status": "revealed"}}
-    )
+    # ── 2. Update reveal status ON-CHAIN ──
+    try:
+        nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
+        txn_status = contract.functions.updateRevealStatus(str(fb_id), "revealed").build_transaction({
+            "chainId": int(os.getenv("CHAIN_ID", 1337)),
+            "from": ACCOUNT_ADDRESS,
+            "nonce": nonce,
+            "gasPrice": w3.eth.gas_price
+        })
+        signed_status = w3.eth.account.sign_transaction(txn_status, private_key=PRIVATE_KEY)
+        w3.eth.send_raw_transaction(signed_status.raw_transaction)
+        print(f"SUCCESS: updateRevealStatus('revealed') sent on-chain for {fb_id}")
+    except Exception as e:
+        print(f"WARNING: updateRevealStatus blockchain error for {fb_id}: {e}")
 
-    # Log to Audit
-    audit_col.insert_one({
-        "feedback_id": str(rid),
-        "action": "IDENTITY_REVEAL",
-        "performed_by": session["username"],
-        "reason": reason,
-        "timestamp": datetime.utcnow().isoformat()
-    })
+    # ── 3. Log Identity Reveal audit ON-CHAIN ──
+    try:
+        nonce2 = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
+        txn_log = contract.functions.logIdentityReveal(str(fb_id), session["username"], reason).build_transaction({
+            "chainId": int(os.getenv("CHAIN_ID", 1337)),
+            "from": ACCOUNT_ADDRESS,
+            "nonce": nonce2,
+            "gasPrice": w3.eth.gas_price
+        })
+        signed_log = w3.eth.account.sign_transaction(txn_log, private_key=PRIVATE_KEY)
+        w3.eth.send_raw_transaction(signed_log.raw_transaction)
+        print(f"SUCCESS: logIdentityReveal sent on-chain for {fb_id}")
+    except Exception as e:
+        print(f"Blockchain Reveal Logging Error: {e}")
+
+    # Local audit log removed (on-chain logging is preferred for transparency)
 
     return render_template(
         "reveal_result.html",
@@ -610,22 +666,12 @@ def authority_reveal(fb_id):
     )
 
 
-@app.route("/authority/audit-logs")
-@login_required(role="authority")
-def authority_audit_logs():
-    logs = list(audit_col.find().sort("timestamp", -1))
-    return render_template(
-        "audit_logs.html",
-        logs=logs,
-        title="Audit Logs",
-        heading="Authority Audit Trail"
-    )
+# authority_audit_logs removed: System uses on-chain event logs for auditing.
 
 
 # ---------- Main ----------
 if __name__ == "__main__":
     create_default_admin()
     create_default_authority()
-    # Disabling the reloader for maximum stability on Windows with Python 3.13.
-    # Note: You must manually restart the server after code changes.
-    app.run(debug=True, use_reloader=False)
+    # Enabling reloader to ensure code changes are picked up automatically.
+    app.run(debug=True, use_reloader=True)

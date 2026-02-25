@@ -1,0 +1,425 @@
+{
+    "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+    "abi": [
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "dataHash",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "encryptedUser",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "targetName",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "category",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "priority",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "timestamp",
+                    "type": "uint256"
+                }
+            ],
+            "name": "FeedbackRecorded",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "performedBy",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "reason",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "timestamp",
+                    "type": "uint256"
+                }
+            ],
+            "name": "IdentityRevealed",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "newStatus",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "timestamp",
+                    "type": "uint256"
+                }
+            ],
+            "name": "RevealStatusUpdated",
+            "type": "event"
+        },
+        {
+            "inputs": [],
+            "name": "getAllFeedbackIds",
+            "outputs": [
+                {
+                    "internalType": "string[]",
+                    "name": "",
+                    "type": "string[]"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                }
+            ],
+            "name": "getAuditLogs",
+            "outputs": [
+                {
+                    "components": [
+                        {
+                            "internalType": "string",
+                            "name": "action",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "performedBy",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "reason",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "timestamp",
+                            "type": "uint256"
+                        }
+                    ],
+                    "internalType": "struct FeedbackRegistry.AuditLog[]",
+                    "name": "",
+                    "type": "tuple[]"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                }
+            ],
+            "name": "getFeedbackCore",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "dataHash",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "encryptedUser",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "encryptedDescription",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "targetName",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "category",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "priority",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "organizationId",
+                    "type": "string"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                }
+            ],
+            "name": "getFeedbackMeta",
+            "outputs": [
+                {
+                    "internalType": "uint8",
+                    "name": "rating1",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "uint8",
+                    "name": "rating2",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "uint8",
+                    "name": "rating3",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "uint8",
+                    "name": "rating4",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "averageRating",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "string",
+                    "name": "revealStatus",
+                    "type": "string"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "timestamp",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "bool",
+                    "name": "exists",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "performedBy",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "reason",
+                    "type": "string"
+                }
+            ],
+            "name": "logIdentityReveal",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "components": [
+                        {
+                            "internalType": "string",
+                            "name": "feedbackId",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "dataHash",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "encryptedUser",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "encryptedDescription",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "targetName",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "category",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "priority",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "organizationId",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "uint8",
+                            "name": "rating1",
+                            "type": "uint8"
+                        },
+                        {
+                            "internalType": "uint8",
+                            "name": "rating2",
+                            "type": "uint8"
+                        },
+                        {
+                            "internalType": "uint8",
+                            "name": "rating3",
+                            "type": "uint8"
+                        },
+                        {
+                            "internalType": "uint8",
+                            "name": "rating4",
+                            "type": "uint8"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "averageRating",
+                            "type": "uint256"
+                        }
+                    ],
+                    "internalType": "struct FeedbackRegistry.FeedbackInput",
+                    "name": "input",
+                    "type": "tuple"
+                }
+            ],
+            "name": "recordFeedback",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "totalFeedbackCount",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "newStatus",
+                    "type": "string"
+                }
+            ],
+            "name": "updateRevealStatus",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "feedbackId",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "dataHash",
+                    "type": "string"
+                }
+            ],
+            "name": "verifyFeedback",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ]
+}

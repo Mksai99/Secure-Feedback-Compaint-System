@@ -16,8 +16,9 @@
           <i class="bi bi-shield-check-fill me-1"></i> Verified
         </span>
         {% else %}
-        <span class="badge bg-danger-subtle text-danger rounded-pill">
-          <i class="bi bi-exclamation-octagon-fill me-1"></i> Compromised
+        <span class="badge bg-danger-subtle text-danger rounded-pill pulse-danger">
+          <i class="bi bi-exclamation-octagon-fill me-1"></i>
+          COMPROMISED: INTEGRITY ERROR
         </span>
         {% endif %}
       </div>
@@ -168,6 +169,7 @@
                 <th>Avg Score</th>
                 <th style="width: 30%;">Feedback Description</th>
                 <th>Timestamp</th>
+                <th>On-Chain TX</th>
                 <th class="text-end pe-4">Manage</th>
               </tr>
             </thead>
@@ -194,13 +196,30 @@
                 </td>
                 <td class="text-muted small">{{ f.created_at[:10] }} <span class="text-secondary-subtle">{{
                     f.created_at[11:16] }}</span></td>
+                <td>
+                  <div class="d-flex flex-column gap-1">
+                    {% if f.tx_hash and f.tx_hash != "NOT IN DB" and f.tx_hash != "ON-CHAIN ONLY" %}
+                    <a href="#" class="badge bg-indigo-subtle text-primary text-decoration-none font-monospace"
+                      title="{{ f.tx_hash }}" style="cursor: help;">
+                      {{ f.tx_hash[:6] }}...{{ f.tx_hash[-4:] }}
+                    </a>
+                    {% endif %}
+
+                    <span
+                      class="badge {{ 'bg-success' if f.status == 'Verified' else 'bg-warning' if 'Missing' in f.status else 'bg-danger' }} rounded-pill"
+                      style="font-size: 0.65rem;">
+                      {{ f.status }}
+                    </span>
+
+                <td>
+                  <div class="d-flex flex-column gap-1">
+                    <span class="badge bg-success rounded-pill" style="font-size: 0.65rem;">
+                      {{ f.status }}
+                    </span>
+                  </div>
+                </td>
                 <td class="text-end pe-4">
-                  <form action="/admin/delete-feedback/{{ f.id }}" method="post"
-                    onsubmit="return confirm('Soft delete this feedback? It will remain in blockchain history.');">
-                    <button class="btn btn-sm btn-light text-danger border" title="Soft Delete">
-                      <i class="bi bi-archive-fill"></i>
-                    </button>
-                  </form>
+                  <span class="badge bg-light text-muted border">Immutable</span>
                 </td>
               </tr>
               {% endfor %}
