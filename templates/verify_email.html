@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card-custom p-5">
+            <h2 class="fw-bold mb-4">Set Your Password</h2>
+            <p class="text-muted mb-4">Welcome, <strong>{{ username }}</strong>! Please set a secure password for your
+                account to complete the verification.</p>
+
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+
+            <form action="/verify-email/{{ token }}?role={{ role }}" method="post">
+                <div class="mb-3">
+                    <label class="form-label small text-uppercase text-muted fw-bold">New Password</label>
+                    <input type="password" name="password" class="form-control" required minlength="8" />
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small text-uppercase text-muted fw-bold">Confirm Password</label>
+                    <input type="password" name="confirm_password" class="form-control" required minlength="8" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Activate Account</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

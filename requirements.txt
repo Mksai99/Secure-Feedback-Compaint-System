@@ -1,3 +1,6 @@
 flask
 pymongo
 cryptography
+pyjwt
+werkzeug
+flask-mail

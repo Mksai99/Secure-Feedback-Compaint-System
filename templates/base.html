@@ -114,17 +114,22 @@
     <!-- MAIN CONTENT -->
     <main class="main-content w-100">
       {% if not session.username %}
-      <!-- Simple Header for logged out pages (Reset/Login) -->
-      <nav class="navbar navbar-light bg-transparent py-3 mb-4">
-        <div class="container-fluid justify-content-center">
-          <a class="navbar-brand brand-title fs-3" href="/">
-            <i class="bi bi-shield-lock-fill"></i> Secure Anonymous Feedback Platform
+      <!-- Refined Header for logged out pages -->
+      <nav class="navbar navbar-light bg-white border-bottom py-3 mb-0">
+        <div class="container d-flex justify-content-between align-items-center">
+          <a class="brand-title" href="/">
+            <i class="bi bi-shield-lock-fill"></i> Secure Feedback
           </a>
+          <div class="d-flex gap-2">
+            {% if request.endpoint != 'login' %}
+            <a href="/login" class="btn btn-outline-primary btn-sm">Login</a>
+            {% endif %}
+          </div>
         </div>
       </nav>
       {% endif %}
 
-      <div class="container-fluid fade-in">
+      <div class="container py-4 fade-in">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

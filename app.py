@@ -8,6 +8,11 @@ from cryptography.fernet import Fernet
 import os
 from web3 import Web3
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+import time
+from flask_mail import Mail, Message
+import secrets
 
 load_dotenv()
 
@@ -18,6 +23,17 @@ app.secret_key = "any_random_long_secret_here"
 MONGO_URI = "mongodb://localhost:27017/"
 client = MongoClient(MONGO_URI)
 db = client["feedback_platform_db"]
+
+# ---------- Mail Configuration ----------
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True') == 'True'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+mail = Mail(app)
+
+BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:5000')
 
 # Migration: Rename old collections if they exist (authentication only)
 def migrate_collections():
@@ -110,8 +126,10 @@ def create_default_admin():
     if admins_col.count_documents({"role": "admin"}) == 0:
         admins_col.insert_one({
             "username": "admin",
-            "password": "admin123",  # demo only
-            "role": "admin"
+            "password": generate_password_hash("admin123"),  # hashed demo creds
+            "role": "admin",
+            "email": "admin@example.com",
+            "is_verified": True
         })
 
 def create_default_authority():
@@ -119,9 +137,49 @@ def create_default_authority():
     if authorities_col.count_documents({"role": "authority"}) == 0:
         authorities_col.insert_one({
             "username": "authority",
-            "password": "auth123",    # demo only
-            "role": "authority"
+            "password": generate_password_hash("auth123"),    # hashed demo creds
+            "role": "authority",
+            "email": "authority@example.com",
+            "is_verified": True
         })
+
+def send_verification_email(email, username, token, role):
+    """Sends a real SMTP verification email."""
+    verify_url = f"{BASE_URL}/verify-email/{token}?role={role}"
+    msg = Message("Verify Your Account - Secure Feedback System",
+                  recipients=[email])
+    msg.body = f"Hello {username},\n\nAn account has been created for you. Please click the link below to verify your email and set your password:\n\n{verify_url}\n\nIf you did not expect this, please ignore this email."
+    try:
+        mail.send(msg)
+        print(f"SUCCESS: Verification email sent to {email}")
+        return True
+    except Exception as e:
+        print(f"ERROR sending email: {e}")
+        return False
+
+def migrate_to_hashed_passwords():
+    """One-time migration: Hashing any plain-text passwords and auto-verifying existing users."""
+    collections = [users_col, targets_col, admins_col, authorities_col]
+    for col in collections:
+        for user in col.find():
+            updates = {}
+            
+            # 1. Hash plain-text passwords
+            pwd = user.get("password", "")
+            if pwd and not pwd.startswith(("pbkdf2:", "scrypt:")):
+                updates["password"] = generate_password_hash(pwd)
+            
+            # 2. Grandfather existing users: Mark as verified if the field is missing
+            if "is_verified" not in user:
+                updates["is_verified"] = True
+                if "email" not in user:
+                    updates["email"] = f"{user.get('username')}@legacy.system"
+            
+            if updates:
+                col.update_one({"_id": user["_id"]}, {"$set": updates})
+    print("Security Migration: Plain-text passwords hashed and existing users auto-verified.")
+
+migrate_to_hashed_passwords()
 
 # get_last_block removed (redundant)
 
@@ -202,12 +260,40 @@ def current_user():
     return None
 
 
+def create_jwt_token(username, role):
+    payload = {
+        "username": username,
+        "role": role,
+        "exp": time.time() + 3600  # Token expires in 1 hour
+    }
+    return jwt.encode(payload, app.secret_key, algorithm="HS256")
+
+def verify_jwt_token(token):
+    try:
+        decoded = jwt.decode(token, app.secret_key, algorithms=["HS256"])
+        return decoded
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
 def login_required(role=None):
     def decorator(fn):
         def wrapper(*args, **kwargs):
             user = current_user()
             if not user:
                 return redirect(url_for("login"))
+            
+            # Additional JWT verification for enhanced security
+            token = session.get("jwt_token")
+            if not token:
+                return redirect(url_for("login"))
+            
+            payload = verify_jwt_token(token)
+            if not payload or payload["username"] != user["username"] or payload["role"] != user["role"]:
+                session.clear()
+                return redirect(url_for("login"))
+
             if role and user["role"] != role:
                 return "Unauthorized", 403
             return fn(*args, **kwargs)
@@ -248,11 +334,17 @@ def login():
 
         user = None
         if col is not None:
-            user = col.find_one({"username": username, "password": password, "role": role})
+            user = col.find_one({"username": username, "role": role})
 
-        if user:
+        if user and check_password_hash(user["password"], password):
+            if not user.get("is_verified", False):
+                return render_template("login.html", error="Email not verified. Please check your inbox.", title="Login", heading="Login")
+            
             session["username"] = username
             session["role"] = role
+            # Generate JWT and store in session (could also use a HttpOnly cookie)
+            session["jwt_token"] = create_jwt_token(username, role)
+
             if role == "user":
                 return redirect(url_for("user_submit_feedback"))
             elif role == "target":
@@ -272,10 +364,62 @@ def login():
     return render_template("login.html", error=None, title="Login", heading="Login")
 
 
+@app.route("/verify-email/<token>", methods=["GET", "POST"])
+def verify_email(token):
+    # Clear any existing session to prevent conflicting states (e.g. Admin sees their sidebar on verification page)
+    session.clear()
+    
+    role = request.args.get("role", "user")
+    if role == "user":
+        col = users_col
+    elif role == "target":
+        col = targets_col
+    else:
+        return "Invalid role", 400
+
+    user = col.find_one({"verification_token": token})
+    if not user:
+        return "Invalid or expired verification token.", 404
+
+    if request.method == "POST":
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+
+        if password != confirm_password:
+            return render_template("verify_email.html", token=token, role=role, error="Passwords do not match")
+
+        hashed_pwd = generate_password_hash(password)
+        col.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"password": hashed_pwd, "is_verified": True}, "$unset": {"verification_token": ""}}
+        )
+        return render_template("verify_success.html", title="Account Activated")
+
+    return render_template("verify_email.html", token=token, role=role, username=user["username"])
+
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+@app.route("/jwt-status")
+@login_required()
+def jwt_status():
+    token = session.get("jwt_token")
+    if not token:
+        return {"status": "error", "message": "No JWT token found in session."}
+    
+    payload = verify_jwt_token(token)
+    if not payload:
+        return {"status": "error", "message": "Invalid or expired JWT token."}
+    
+    return {
+        "status": "success",
+        "token_preview": f"{token[:10]}...{token[-10:]}",
+        "decoded_payload": payload,
+        "is_secure": True
+    }
 
 
 # ----- User -----
@@ -499,9 +643,18 @@ def admin_dashboard():
 @login_required(role="admin")
 def admin_add_target():
     username = request.form.get("username")
-    password = request.form.get("password")
-    if username and password:
-        targets_col.insert_one({"username": username, "password": password, "role": "target"})
+    email = request.form.get("email")
+    if username and email:
+        token = secrets.token_urlsafe(32)
+        targets_col.insert_one({
+            "username": username,
+            "password": "", # Set by user during verification
+            "role": "target",
+            "email": email,
+            "is_verified": False,
+            "verification_token": token
+        })
+        send_verification_email(email, username, token, "target")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -509,9 +662,18 @@ def admin_add_target():
 @login_required(role="admin")
 def admin_add_user():
     username = request.form.get("username")
-    password = request.form.get("password")
-    if username and password:
-        users_col.insert_one({"username": username, "password": password, "role": "user"})
+    email = request.form.get("email")
+    if username and email:
+        token = secrets.token_urlsafe(32)
+        users_col.insert_one({
+            "username": username,
+            "password": "", # Set by user during verification
+            "role": "user",
+            "email": email,
+            "is_verified": False,
+            "verification_token": token
+        })
+        send_verification_email(email, username, token, "user")
     return redirect(url_for("admin_dashboard"))
 
 
