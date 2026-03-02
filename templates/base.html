@@ -130,22 +130,55 @@
       {% endif %}
 
       <div class="container py-4 fade-in">
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+        <!-- Toast Container -->
+        <div class="toast-container" id="toastContainer"></div>
+
+        <script>
+          function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `custom-toast toast-${type}`;
+
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'error') icon = 'exclamation-triangle';
+            if (type === 'warning') icon = 'exclamation-circle';
+
+            toast.innerHTML = `
+              <div class="toast-icon"><i class="bi bi-${icon}"></i></div>
+              <div class="toast-content">${message}</div>
+              <button class="toast-close" onclick="this.parentElement.classList.remove('show'); setTimeout(() => this.parentElement.remove(), 400);">
+                <i class="bi bi-x"></i>
+              </button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Auto hide
+            setTimeout(() => {
+              toast.classList.remove('show');
+              setTimeout(() => toast.remove(), 400);
+            }, 5000);
+          }
+
+          // Convert flash messages to toasts
+          document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories = true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            showToast("{{ message }}", "{{ 'error' if category == 'danger' else category }}");
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+          });
+        </script>
 
         <div id="content-block">
           {% block content %}{% endblock %}
         </div>
       </div>
+
     </main>
   </div>
 

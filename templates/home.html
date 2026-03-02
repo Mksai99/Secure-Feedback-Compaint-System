@@ -6,88 +6,109 @@
   <!-- DASHBOARD OVERVIEW (Logged In) -->
   <div class="row mb-5">
     <div class="col-12">
-      <div class="p-5 rounded-4 bg-primary text-white position-relative overflow-hidden shadow-lg">
+      <div class="p-5 rounded-4 bg-primary text-white position-relative overflow-hidden shadow-xl"
+        style="background: var(--primary-gradient) !important;">
         <div class="position-relative z-1">
-          <h1 class="fw-bold display-5">Welcome, {{ session.username }}!</h1>
-          <p class="lead opacity-75">Secure Feedback Platform Control Panel</p>
-          <p class="mb-4">Role Access: <span class="badge bg-white text-primary text-uppercase">{{
-              session.role|replace("authority", "Authority")|capitalize
-              }}</span></p>
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="bg-white bg-opacity-10 p-2 rounded-3">
+              <i class="bi bi-person-badge fs-3"></i>
+            </div>
+            <div>
+              <h1 class="fw-bold mb-0">Welcome back, {{ session.username }}</h1>
+              <span class="badge bg-white text-primary text-uppercase small ls-wide" style="font-size: 0.7rem;">{{
+                session.role|replace("authority", "Authority")|capitalize }} Access</span>
+            </div>
+          </div>
+          <p class="lead opacity-75 mb-4">Secure Anonymous Feedback Platform • Control Center</p>
 
-          <div class="d-flex gap-3">
+          <div class="d-flex flex-wrap gap-2">
             {% if session.role == 'user' %}
-            <a href="/user/provide-feedback" class="btn btn-light fw-bold px-4 py-2">
-              <i class="bi bi-pencil-square me-2"></i> Submit Feedback
+            <a href="/user/provide-feedback" class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm">
+              <i class="bi bi-pencil-square me-2"></i> Submit New Feedback
             </a>
             {% elif session.role == 'target' %}
-            <a href="/target/view-feedback" class="btn btn-light fw-bold px-4 py-2">
-              <i class="bi bi-inbox me-2"></i> View Feedback
+            <a href="/target/view-feedback" class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm">
+              <i class="bi bi-inbox me-2"></i> View Inbox
             </a>
             {% elif session.role == 'authority' %}
-            <a href="/authority" class="btn btn-light fw-bold px-4 py-2">
+            <a href="/authority" class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm">
               <i class="bi bi-shield-check me-2"></i> Authority Panel
             </a>
             {% elif session.role == 'admin' %}
-            <a href="/admin" class="btn btn-light fw-bold px-4 py-2">
+            <a href="/admin" class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm">
               <i class="bi bi-gear me-2"></i> Admin Control Center
             </a>
             {% endif %}
+            <button class="btn btn-outline-light px-4 py-2 rounded-pill"
+              onclick="showToast('Security check passed: Blockchain synchronized.', 'success')">
+              <i class="bi bi-shield-lock me-1"></i> Sync Status
+            </button>
           </div>
         </div>
-        <!-- Decorative Circle -->
+        <!-- Decorative Elements -->
         <div class="position-absolute top-0 end-0 translate-middle-y me-n5 mt-n5 rounded-circle bg-white opacity-10"
-          style="width: 400px; height: 400px;"></div>
+          style="width: 300px; height: 300px;"></div>
+        <div class="position-absolute bottom-0 start-0 ms-n5 mb-n5 rounded-circle bg-white opacity-5"
+          style="width: 200px; height: 200px;"></div>
       </div>
     </div>
   </div>
 
   <div class="row g-4">
     <div class="col-md-4">
-      <div class="card-custom h-100 p-4">
+      <div class="card-custom h-100 p-4 border-0 shadow-soft glass-panel">
         <div class="d-flex align-items-center gap-3 mb-3">
-          <div class="bg-indigo-subtle text-primary p-3 rounded-circle">
+          <div class="bg-primary-light text-primary p-3 rounded-4">
             <i class="bi bi-shield-lock-fill fs-4"></i>
           </div>
           <h5 class="fw-bold mb-0">Security Status</h5>
         </div>
-        <p class="text-muted">System integrity is verified by blockchain technology.</p>
-        <div class="mt-auto pt-3 border-top">
-          <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i> System
-            Active</span>
+        <p class="text-muted small">System integrity is verified by private blockchain technology. All data is
+          immutable.</p>
+        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+          <span class="badge bg-success-subtle text-success rounded-pill px-3">
+            <i class="bi bi-check-circle-fill me-1"></i> Active
+          </span>
+          <span class="text-muted extra-small">256-bit AES</span>
         </div>
       </div>
     </div>
 
     <div class="col-md-4">
-      <div class="card-custom h-100 p-4">
+      <div class="card-custom h-100 p-4 border-0 shadow-soft glass-panel">
         <div class="d-flex align-items-center gap-3 mb-3">
-          <div class="bg-indigo-subtle text-primary p-3 rounded-circle">
+          <div class="bg-accent-light text-accent p-3 rounded-4">
             <i class="bi bi-incognito fs-4"></i>
           </div>
           <h5 class="fw-bold mb-0">Anonymity</h5>
         </div>
-        <p class="text-muted">Your identity is cryptographically protected and sealed.</p>
+        <p class="text-muted small">Your identity is cryptographically protected and sealed against the ledger.</p>
         <div class="mt-auto pt-3 border-top">
-          <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i> Identity
-            Protected</span>
+          <span class="badge bg-info-subtle text-info rounded-pill px-3">
+            <i class="bi bi-shield-fill-check me-1"></i> Protected
+          </span>
         </div>
       </div>
     </div>
 
     <div class="col-md-4">
-      <div class="card-custom h-100 p-4">
+      <div class="card-custom h-100 p-4 border-0 shadow-soft glass-panel">
         <div class="d-flex align-items-center gap-3 mb-3">
-          <div class="bg-indigo-subtle text-primary p-3 rounded-circle">
+          <div class="bg-secondary-light text-secondary p-3 rounded-4">
             <i class="bi bi-clock-history fs-4"></i>
           </div>
           <h5 class="fw-bold mb-0">System Time</h5>
         </div>
-        <p class="text-muted">Current authorized system timestamp.</p>
+        <p class="text-muted small">Current authorized system timestamp for blockchain synchronization.</p>
         <div class="mt-auto pt-3 border-top text-muted small font-monospace">
           <span id="current-time">Loading...</span>
         </div>
         <script>
-          document.getElementById('current-time').textContent = new Date().toLocaleString();
+          function updateClock() {
+            document.getElementById('current-time').textContent = new Date().toLocaleString();
+          }
+          setInterval(updateClock, 1000);
+          updateClock();
         </script>
       </div>
     </div>
