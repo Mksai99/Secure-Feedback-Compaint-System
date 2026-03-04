@@ -607,3 +607,77 @@ h6 {
 .toast-info i {
     color: var(--accent-color);
 }
+
+/* --- Authority Panel Enhancements --- */
+
+/* Priority Row Highlighting */
+.priority-critical {
+    background-color: rgba(220, 38, 38, 0.05) !important;
+}
+
+.priority-high {
+    background-color: rgba(217, 119, 6, 0.05) !important;
+}
+
+/* Score Visualizer */
+.score-progress {
+    height: 6px;
+    border-radius: 3px;
+    background-color: var(--border-color);
+    overflow: hidden;
+    width: 60px;
+}
+
+.score-fill {
+    height: 100%;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.score-fill-low {
+    background-color: var(--error-text);
+}
+
+.score-fill-medium {
+    background-color: var(--warning-text);
+}
+
+.score-fill-high {
+    background-color: var(--success-text);
+}
+
+/* High-Contrast Badges */
+.badge-revealed {
+    background-color: var(--error-bg);
+    color: var(--error-text);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    font-weight: 600;
+}
+
+.badge-encrypted {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+/* Modal Customization */
+.modal-content {
+    border-radius: var(--radius-xl);
+    border: none;
+    box-shadow: var(--shadow-xl);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 1.25rem;
+}
+
+.hover-warning:hover {
+    background-color: var(--warning-bg) !important;
+    color: var(--warning-text) !important;
+}

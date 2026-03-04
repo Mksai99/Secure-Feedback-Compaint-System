@@ -3,61 +3,81 @@
 <div class="fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold mb-1">Audit Trail</h2>
-            <p class="text-muted">Immutable record of identity reveals.</p>
+            <h2 class="fw-bold mb-1 text-primary">Cryptographic Audit Ledger</h2>
+            <p class="text-muted small mb-0">Immutable record of all identity de-anonymization events.</p>
         </div>
-        <a href="/authority" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-2"></i>Back to Authority Panel
+        <a href="/authority" class="btn btn-outline-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-2"></i> Authority Dashboard
         </a>
     </div>
 
-    <div class="card-custom p-0 overflow-hidden shadow-sm">
-        <div class="p-4 border-bottom bg-light bg-opacity-50">
-            <h5 class="fw-bold mb-0 text-dark font-monospace"><i
-                    class="bi bi-activity text-secondary me-2"></i>SYSTEM_LOGS</h5>
+    <div class="card-custom p-0 overflow-hidden shadow-sm border-0">
+        <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-shield-check me-2 text-success"></i>Integrity Log
+            </h5>
+            <span class="badge bg-success-subtle text-success border px-3 py-2 rounded-pill small fw-bold">
+                <i class="bi bi-patch-check-fill me-1"></i> Chain Verified
+            </span>
         </div>
 
         {% if logs %}
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
-                <thead class="bg-light text-uppercase small text-muted">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.95rem;">
+                <thead class="bg-light text-uppercase small text-muted"
+                    style="letter-spacing: 0.05em; font-size: 0.7rem;">
                     <tr>
                         <th class="ps-4">Timestamp (UTC)</th>
-                        <th>Actor</th>
-                        <th>Action Type</th>
-                        <th>Target Feedback ID</th>
-                        <th>Justification</th>
+                        <th>Auditor Identity</th>
+                        <th>Action Performed</th>
+                        <th>Reference ID</th>
+                        <th>Mandatory Justification</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for log in logs %}
                     <tr class="border-bottom">
-                        <td class="ps-4 font-monospace text-secondary">{{ log.timestamp }}</td>
+                        <td class="ps-4 font-monospace text-muted small">{{ log.timestamp.split('.')[0].replace('T', '
+                            ') }}</td>
                         <td>
-                            <span
-                                class="badge bg-secondary-subtle text-dark border d-flex align-items-center w-auto d-inline-flex gap-2">
-                                <i class="bi bi-person-badge-fill text-secondary"></i> {{ log.performed_by }}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width: 28px; height: 28px;">
+                                    <i class="bi bi-person-fill small"></i>
+                                </div>
+                                <span class="fw-bold text-dark">{{ log.performed_by }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-revealed px-3 py-1">
+                                <i class="bi bi-unlock-fill me-1"></i> {{ log.action }}
                             </span>
                         </td>
                         <td>
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
-                                {{ log.action }}
-                            </span>
+                            <code
+                                class="text-secondary bg-light px-2 py-1 rounded small">{{ log.feedback_id[:8] }}...</code>
                         </td>
-                        <td class="font-monospace text-muted small">{{ log.feedback_id }}</td>
-                        <td class="fw-medium text-dark">{{ log.reason }}</td>
+                        <td>
+                            <div
+                                class="bg-light p-2 rounded-3 small border-start border-primary border-3 text-secondary">
+                                "{{ log.reason }}"
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         {% else %}
-        <div class="text-center p-5">
-            <div class="mb-3 text-success opacity-50">
-                <i class="bi bi-shield-check display-1"></i>
+        <div class="text-center p-5 bg-white">
+            <div class="mb-3 text-success opacity-25">
+                <i class="bi bi-shield-fill-check display-1"></i>
             </div>
-            <h5 class="text-muted">System Integrous. No Reveals Found.</h5>
-            <p class="small text-muted">The audit log is currently empty.</p>
+            <h5 class="fw-bold text-dark">System Integrity Maintained</h5>
+            <p class="text-muted mx-auto" style="max-width: 400px;">
+                No identity reveal events have been recorded. All participant identities remain securely encrypted
+                within the blockchain.
+            </p>
         </div>
         {% endif %}
     </div>

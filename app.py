@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 import json
 from datetime import datetime
 from pymongo import MongoClient
@@ -121,27 +121,40 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def is_email_taken(email):
+    """Checks if an email is already used in any of the user-related collections."""
+    query = {"email": {"$regex": f"^{email}$", "$options": "i"}}
+    if users_col.find_one(query): return True
+    if targets_col.find_one(query): return True
+    if admins_col.find_one(query): return True
+    if authorities_col.find_one(query): return True
+    return False
+
 def create_default_admin():
     """Create default admin user if none exists in admins collection."""
     if admins_col.count_documents({"role": "admin"}) == 0:
-        admins_col.insert_one({
-            "username": "admin",
-            "password": generate_password_hash("admin123"),  # hashed demo creds
-            "role": "admin",
-            "email": "admin@example.com",
-            "is_verified": True
-        })
+        email = "admin@example.com"
+        if not is_email_taken(email):
+            admins_col.insert_one({
+                "username": "admin",
+                "password": generate_password_hash("admin123"),  # hashed demo creds
+                "role": "admin",
+                "email": email,
+                "is_verified": True
+            })
 
 def create_default_authority():
     """Create default authority user if none exists."""
     if authorities_col.count_documents({"role": "authority"}) == 0:
-        authorities_col.insert_one({
-            "username": "authority",
-            "password": generate_password_hash("auth123"),    # hashed demo creds
-            "role": "authority",
-            "email": "authority@example.com",
-            "is_verified": True
-        })
+        email = "authority@example.com"
+        if not is_email_taken(email):
+            authorities_col.insert_one({
+                "username": "authority",
+                "password": generate_password_hash("auth123"),    # hashed demo creds
+                "role": "authority",
+                "email": email,
+                "is_verified": True
+            })
 
 def send_verification_email(email, username, token, role):
     """Sends a real SMTP verification email."""
@@ -377,7 +390,8 @@ def verify_email(token):
     else:
         return "Invalid role", 400
 
-    user = col.find_one({"verification_token": token})
+    hashed_token = sha256(token)
+    user = col.find_one({"verification_token": hashed_token})
     if not user:
         return "Invalid or expired verification token.", 404
 
@@ -575,8 +589,8 @@ def target_view_feedback():
 @app.route("/admin")
 @login_required(role="admin")
 def admin_dashboard():
-    target_list = list(targets_col.find({"role": "target"}, {"username": 1, "_id": 0}))
-    user_list = list(users_col.find({"role": "user"}, {"username": 1, "_id": 0}))
+    target_list = list(targets_col.find({"role": "target"}, {"username": 1, "is_verified": 1, "email": 1, "_id": 0}))
+    user_list = list(users_col.find({"role": "user"}, {"username": 1, "is_verified": 1, "email": 1, "_id": 0}))
     
     feedback_list = []
     compromised_ids = []
@@ -645,16 +659,27 @@ def admin_add_target():
     username = request.form.get("username")
     email = request.form.get("email")
     if username and email:
-        token = secrets.token_urlsafe(32)
+        if targets_col.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}):
+            flash(f"Error: Target '{username}' already exists.", "danger")
+            return redirect(url_for("admin_dashboard"))
+        
+        if is_email_taken(email):
+            flash(f"Error: Email '{email}' is already in use by another account.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        raw_token = secrets.token_urlsafe(32)
+        hashed_token = sha256(raw_token)
         targets_col.insert_one({
             "username": username,
             "password": "", # Set by user during verification
             "role": "target",
             "email": email,
             "is_verified": False,
-            "verification_token": token
+            "verification_token": hashed_token
         })
-        send_verification_email(email, username, token, "target")
+        send_verification_email(email, username, raw_token, "target")
+        print(f"DEBUG_VERIFY: Target: {username}, Raw Token: {raw_token}")
+        flash(f"Verification email sent to target: {username}", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -664,16 +689,27 @@ def admin_add_user():
     username = request.form.get("username")
     email = request.form.get("email")
     if username and email:
-        token = secrets.token_urlsafe(32)
+        if users_col.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}):
+            flash(f"Error: User '{username}' already exists.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        if is_email_taken(email):
+            flash(f"Error: Email '{email}' is already in use by another account.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        raw_token = secrets.token_urlsafe(32)
+        hashed_token = sha256(raw_token)
         users_col.insert_one({
             "username": username,
             "password": "", # Set by user during verification
             "role": "user",
             "email": email,
             "is_verified": False,
-            "verification_token": token
+            "verification_token": hashed_token
         })
-        send_verification_email(email, username, token, "user")
+        send_verification_email(email, username, raw_token, "user")
+        print(f"DEBUG_VERIFY: User: {username}, Raw Token: {raw_token}")
+        flash(f"Verification email sent to user: {username}", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -767,11 +803,13 @@ def authority_dashboard():
     )
 
 
-@app.route("/authority/reveal/<fb_id>", methods=["POST"])
+@app.route("/authority/reveal/<fb_id>", methods=["GET", "POST"])
 @login_required(role="authority")
 def authority_reveal(fb_id):
-    reason = request.form.get("reason")
-    if not reason:
+    is_view_only = request.method == "GET" or request.args.get("view") == "true"
+    reason = request.form.get("reason") if request.method == "POST" else "Viewed session record"
+
+    if not is_view_only and not reason:
         return "Reason is mandatory", 400
 
     if not contract:
@@ -785,6 +823,10 @@ def authority_reveal(fb_id):
         if not meta[7]:  # exists
             return "Feedback record not found on blockchain", 404
 
+        # If it's a GET request but the status is NOT revealed, redirect to dashboard
+        if is_view_only and meta[5] != 'revealed':
+            return redirect(url_for("authority_dashboard"))
+
         encrypted_id = core[1]  # encryptedUser
         print(f"DEBUG: Fetched encryptedUser from Blockchain for {fb_id}")
 
@@ -796,42 +838,42 @@ def authority_reveal(fb_id):
         print(f"Blockchain Fetch Error during Reveal: {e}")
         return f"Blockchain error during reveal: {str(e)}", 500
 
-    # ── 2. Update reveal status ON-CHAIN ──
-    try:
-        nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
-        txn_status = contract.functions.updateRevealStatus(str(fb_id), "revealed").build_transaction({
-            "chainId": int(os.getenv("CHAIN_ID", 1337)),
-            "from": ACCOUNT_ADDRESS,
-            "nonce": nonce,
-            "gasPrice": w3.eth.gas_price
-        })
-        signed_status = w3.eth.account.sign_transaction(txn_status, private_key=PRIVATE_KEY)
-        w3.eth.send_raw_transaction(signed_status.raw_transaction)
-        print(f"SUCCESS: updateRevealStatus('revealed') sent on-chain for {fb_id}")
-    except Exception as e:
-        print(f"WARNING: updateRevealStatus blockchain error for {fb_id}: {e}")
+    # ── 2. Structural logic for unmasking (POST only) ──
+    if request.method == "POST":
+        # ── Update reveal status ON-CHAIN ──
+        try:
+            nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
+            txn_status = contract.functions.updateRevealStatus(str(fb_id), "revealed").build_transaction({
+                "chainId": int(os.getenv("CHAIN_ID", 1337)),
+                "from": ACCOUNT_ADDRESS,
+                "nonce": nonce,
+                "gasPrice": w3.eth.gas_price
+            })
+            signed_status = w3.eth.account.sign_transaction(txn_status, private_key=PRIVATE_KEY)
+            w3.eth.send_raw_transaction(signed_status.raw_transaction)
+            print(f"SUCCESS: updateRevealStatus('revealed') sent on-chain for {fb_id}")
+        except Exception as e:
+            print(f"WARNING: updateRevealStatus blockchain error for {fb_id}: {e}")
 
-    # ── 3. Log Identity Reveal audit ON-CHAIN ──
-    try:
-        nonce2 = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
-        txn_log = contract.functions.logIdentityReveal(str(fb_id), session["username"], reason).build_transaction({
-            "chainId": int(os.getenv("CHAIN_ID", 1337)),
-            "from": ACCOUNT_ADDRESS,
-            "nonce": nonce2,
-            "gasPrice": w3.eth.gas_price
-        })
-        signed_log = w3.eth.account.sign_transaction(txn_log, private_key=PRIVATE_KEY)
-        w3.eth.send_raw_transaction(signed_log.raw_transaction)
-        print(f"SUCCESS: logIdentityReveal sent on-chain for {fb_id}")
-    except Exception as e:
-        print(f"Blockchain Reveal Logging Error: {e}")
-
-    # Local audit log removed (on-chain logging is preferred for transparency)
+        # ── Log Identity Reveal audit ON-CHAIN ──
+        try:
+            nonce2 = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
+            txn_log = contract.functions.logIdentityReveal(str(fb_id), session["username"], reason).build_transaction({
+                "chainId": int(os.getenv("CHAIN_ID", 1337)),
+                "from": ACCOUNT_ADDRESS,
+                "nonce": nonce2,
+                "gasPrice": w3.eth.gas_price
+            })
+            signed_log = w3.eth.account.sign_transaction(txn_log, private_key=PRIVATE_KEY)
+            w3.eth.send_raw_transaction(signed_log.raw_transaction)
+            print(f"SUCCESS: logIdentityReveal sent on-chain for {fb_id}")
+        except Exception as e:
+            print(f"Blockchain Reveal Logging Error: {e}")
 
     return render_template(
         "reveal_result.html",
         real_identity=real_identity,
-        reason=reason,
+        reason=reason if request.method == "POST" else "Existing Audit Approval",
         feedback_id=fb_id,
         title="Identity Unmasked"
     )

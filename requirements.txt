@@ -4,3 +4,5 @@ cryptography
 pyjwt
 werkzeug
 flask-mail
+web3
+python-dotenv

@@ -35,28 +35,27 @@
       </div>
 
       <div class="nav flex-column">
-        <a class="nav-link {{ 'active' if request.endpoint == 'index' }}" href="/">
+        <a class="nav-link {{ 'active' if (request.endpoint or '') == 'home' }}" href="/">
           <i class="bi bi-speedometer2"></i> Dashboard
         </a>
 
         {% if session.role == "user" %}
-        <a class="nav-link {{ 'active' if 'user' in request.endpoint }}" href="/user/provide-feedback">
+        <a class="nav-link {{ 'active' if 'user' in (request.endpoint or '') }}" href="/user/provide-feedback">
           <i class="bi bi-pencil-square"></i> Provide Feedback
         </a>
         {% elif session.role == "target" %}
-        <a class="nav-link {{ 'active' if 'target' in request.endpoint }}" href="/target/view-feedback">
+        <a class="nav-link {{ 'active' if 'target' in (request.endpoint or '') }}" href="/target/view-feedback">
           <i class="bi bi-inbox"></i> Feedback Inbox
         </a>
         {% elif session.role == "admin" %}
-        <a class="nav-link {{ 'active' if 'admin' in request.endpoint }}" href="/admin">
+        <a class="nav-link {{ 'active' if 'admin' in (request.endpoint or '') }}" href="/admin">
           <i class="bi bi-gear"></i> Admin Control
         </a>
         {% elif session.role == "authority" %}
-        <a class="nav-link {{ 'active' if 'authority' in request.endpoint or 'audit' in request.endpoint }}"
-          href="/authority">
+        <a class="nav-link {{ 'active' if 'authority' in (request.endpoint or '') }}" href="/authority">
           <i class="bi bi-shield-check"></i> Authority Panel
         </a>
-        <a class="nav-link {{ 'active' if 'audit' in request.endpoint }}" href="/authority/audit-logs">
+        <a class="nav-link {{ 'active' if 'audit' in (request.endpoint or '') }}" href="/authority/audit-logs">
           <i class="bi bi-journal-text"></i> Audit Logs
         </a>
         {% endif %}
@@ -121,7 +120,7 @@
             <i class="bi bi-shield-lock-fill"></i> Secure Feedback
           </a>
           <div class="d-flex gap-2">
-            {% if request.endpoint != 'login' %}
+            {% if (request.endpoint or '') != 'login' %}
             <a href="/login" class="btn btn-outline-primary btn-sm">Login</a>
             {% endif %}
           </div>
@@ -132,6 +131,11 @@
       <div class="container py-4 fade-in">
         <!-- Toast Container -->
         <div class="toast-container" id="toastContainer"></div>
+
+        <!-- JSON Bridge for Flash Messages (Prevents lint errors in JS block) -->
+        <script id="flash-data" type="application/json">
+          {{ get_flashed_messages(with_categories=true) | tojson | safe }}
+        </script>
 
         <script>
           function showToast(message, type = 'info') {
@@ -164,13 +168,17 @@
 
           // Convert flash messages to toasts
           document.addEventListener('DOMContentLoaded', () => {
-            {% with messages = get_flashed_messages(with_categories = true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            showToast("{{ message }}", "{{ 'error' if category == 'danger' else category }}");
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
+            try {
+              const flashData = JSON.parse(document.getElementById('flash-data').textContent);
+              flashData.forEach((item) => {
+                const category = item[0];
+                const message = item[1];
+                const type = category === 'danger' ? 'error' : (category === 'message' ? 'info' : category);
+                showToast(message, type);
+              });
+            } catch (e) {
+              console.error("Error parsing flash messages:", e);
+            }
           });
         </script>
 
@@ -184,6 +192,8 @@
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  {% block modals %}{% endblock %}
 </body>
 
 </html>

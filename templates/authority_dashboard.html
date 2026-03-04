@@ -4,111 +4,118 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="fw-bold mb-1">Authority Control</h2>
-      <p class="text-muted">Feedback Auditing & Protected Identity Management</p>
+      <h2 class="fw-bold mb-1 text-primary">Oversight Authority Control</h2>
+      <p class="text-muted small mb-0">Auditing immutable feedback records with cryptographic identity protection.</p>
     </div>
-    <a href="/authority/audit-logs" class="btn btn-outline-secondary">
-      <i class="bi bi-journal-check me-2"></i> View Audit Trail
+    <a href="/authority/audit-logs" class="btn btn-outline-secondary shadow-sm">
+      <i class="bi bi-journal-check me-2"></i> Audit Ledger
     </a>
   </div>
 
-  <div class="alert alert-light border shadow-sm d-flex align-items-center gap-3 mb-4 rounded-3">
-    <div class="bg-info-subtle text-info p-2 rounded-circle">
-      <i class="bi bi-shield-exclamation fs-5"></i>
+  <div class="alert alert-light border shadow-sm d-flex align-items-center gap-3 mb-4 rounded-3 bg-white">
+    <div class="bg-indigo-subtle text-accent-color p-3 rounded-circle"
+      style="background-color: var(--accent-light) !important;">
+      <i class="bi bi-shield-lock-fill fs-4" style="color: var(--accent-color);"></i>
     </div>
-    <div>
-      <h6 class="fw-bold mb-1">Authority Responsibility</h6>
+    <div class="flex-grow-1">
+      <h6 class="fw-bold mb-1 text-dark">Data Governance & Responsibility</h6>
       <p class="mb-0 text-muted small">
-        You are authorized to audit feedback and request identity de-anonymization only for verified policy necessity or
-        investigations.
-        All unmasking actions are immutably logged and require a documented justification.
+        Identity de-anonymization is restricted to authorized investigations.
+        Each action triggers an <strong>on-chain audit log</strong> that cannot be altered or deleted.
       </p>
     </div>
   </div>
 
-  <div class="card-custom p-0">
-    <div class="p-4 border-bottom bg-light bg-opacity-50">
+  <div class="card-custom p-0 overflow-hidden shadow-sm border-0">
+    <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
       <h5 class="fw-bold mb-0 text-dark">
-        <i class="bi bi-search me-2"></i>Feedback Repository
+        <i class="bi bi-collection me-2 text-primary"></i>Feedback Repository
       </h5>
+      <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small">
+        {{ feedback_list|length }} total records
+      </span>
     </div>
 
     <div class="p-0">
       {% if feedback_list %}
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="min-height: 400px;">
+        <table class="table table-hover align-middle mb-0">
           <thead class="bg-light">
-            <tr>
-              <th class="ps-4">Target</th>
-              <th>Category</th>
-              <th>Priority</th>
-              <th>Description</th>
+            <tr class="text-uppercase small fw-bold text-muted" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+              <th class="ps-4">Recipient Entity</th>
+              <th>Category & Priority</th>
+              <th>System Score</th>
+              <th>Feedback Summary</th>
               <th>Filed On</th>
-              <th>Identity Status</th>
-              <th style="width: 250px;" class="pe-4 text-end">Authority Actions</th>
+              <th>Cryptographic Status</th>
+              <th class="pe-4 text-end">Security Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for f in feedback_list %}
-            <tr>
-              <td class="ps-4 fw-bold">{{ f.target_name }}</td>
-              <td><span class="badge bg-light text-secondary border">{{ f.category or "-" }}</span></td>
-              <td>
-                <span
-                  class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning' if f.priority == 'High' else 'bg-primary' if f.priority == 'Medium' else 'bg-info' }}">
-                  {{ f.priority }}
-                </span>
-                <div class="small text-muted mt-1" style="font-size: 0.75rem;">
-                  Score: {{ f.avg }}
+            <tr
+              class="{{ 'priority-critical' if f.priority == 'Critical' else 'priority-high' if f.priority == 'High' else '' }}">
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="bg-light rounded-circle d-flex align-items-center justify-content-center border"
+                    style="width: 32px; height: 32px;">
+                    <i class="bi bi-building text-secondary shadow-sm"></i>
+                  </div>
+                  <span class="fw-bold text-dark">{{ f.target_name }}</span>
                 </div>
               </td>
-              <td style="max-width: 300px;">
-                <div class="text-wrap text-secondary small fst-italic">"{{ f.description }}"</div>
+              <td>
+                <span class="badge bg-white text-secondary border px-2 py-1 mb-1 d-inline-block">{{ f.category or
+                  "General" }}</span>
+                <br>
+                <span
+                  class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' if f.priority == 'Medium' else 'bg-info' }} shadow-sm">
+                  {{ f.priority }}
+                </span>
               </td>
-              <td class="text-muted small">{{ f.created_at[:10] }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="score-progress shadow-sm">
+                    <div
+                      class="score-fill {{ 'score-fill-low' if f.avg < 2 else 'score-fill-medium' if f.avg < 4 else 'score-fill-high' }}"
+                      style="width: {{ (f.avg / 5) * 100 }}%;"></div>
+                  </div>
+                  <span class="fw-bold small">{{ f.avg }}</span>
+                </div>
+                <div class="text-muted small" style="font-size: 0.65rem;">Average Satisfaction</div>
+              </td>
+              <td style="max-width: 250px;">
+                <div class="text-truncate text-secondary small fst-italic" title="{{ f.description }}">
+                  "{{ f.description }}"
+                </div>
+              </td>
+              <td class="text-muted small font-monospace">
+                {{ f.created_at[:10] }}
+              </td>
               <td>
                 {% if f.reveal_status == 'revealed' %}
-                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                <span class="badge badge-revealed shadow-sm">
                   <i class="bi bi-unlock-fill me-1"></i>UNMASKED
                 </span>
                 {% else %}
-                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                <span class="badge badge-encrypted shadow-sm">
                   <i class="bi bi-lock-fill me-1"></i>ENCRYPTED
                 </span>
                 {% endif %}
               </td>
               <td class="pe-4 text-end">
-                <div class="d-flex justify-content-end">
-                  {% if f.reveal_status == 'revealed' %}
-                  <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#revealForm{{ loop.index }}">
-                    <i class="bi bi-eye text-muted"></i> View De-anonymized Details
-                  </button>
-                  {% else %}
-                  <button class="btn btn-sm btn-outline-warning text-dark border-warning-subtle hover-warning"
-                    type="button" data-bs-toggle="collapse" data-bs-target="#revealForm{{ loop.index }}">
-                    <i class="bi bi-exclamation-triangle"></i> De-anonymize Identity
-                  </button>
-                  {% endif %}
-                </div>
-
-                <div
-                  class="collapse mt-2 text-start shadow-lg bg-white rounded-3 border"
-                  style="width: 300px; position: absolute; right: 2rem; z-index: 1050;" id="revealForm{{ loop.index }}">
-                  <div class="p-3">
-                    <h6 class="fw-bold mb-2 small text-danger">Authorize Identity De-anonymization</h6>
-                    <form action="/authority/reveal/{{ f.id }}" method="post">
-                      <div class="mb-2">
-                        <label class="form-label small text-muted">Justification</label>
-                        <textarea name="reason" class="form-control form-control-sm" rows="2"
-                          placeholder="Reference policy or case details..." required></textarea>
-                      </div>
-                      <button type="submit" class="btn btn-sm btn-danger w-100 mt-2">
-                        <i class="bi bi-fingerprint me-1"></i> Confirm Identity Unlock
-                      </button>
-                    </form>
-                  </div>
-                </div>
+                {% if f.reveal_status == 'revealed' %}
+                <button class="btn btn-sm btn-white border shadow-sm px-3 d-inline-flex align-items-center"
+                  onclick="window.location.href='/authority/reveal/{{ f.id }}?view=true'" style="background: white;">
+                  <i class="bi bi-shield-check text-primary me-2"></i> View ID
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm btn-outline-danger shadow-sm px-3 hover-warning d-inline-flex align-items-center"
+                  data-bs-toggle="modal" data-bs-target="#revealModal{{ loop.index }}">
+                  <i class="bi bi-key-fill me-2"></i> Unmask
+                </button>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -116,20 +123,83 @@
         </table>
       </div>
       {% else %}
-      <div class="p-5 text-center text-muted">
-        <i class="bi bi-folder2-open display-4 mb-3 d-block opacity-25"></i>
-        No feedback records found in system.
+      <div class="p-5 text-center bg-white">
+        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+          style="width: 100px; height: 100px;">
+          <i class="bi bi-shield-slash display-4 text-muted opacity-25"></i>
+        </div>
+        <h4 class="fw-bold text-dark">Repository Integrous & Empty</h4>
+        <p class="text-muted mx-auto" style="max-width: 400px;">
+          No feedback records are currently available for audit. Systems are operating normally.
+        </p>
       </div>
       {% endif %}
     </div>
   </div>
 
 </div>
+{% endblock %}
+
+{% block modals %}
+<!-- High-Level Modal Containers (Placement outside content block prevents stacking context entrapment) -->
+{% if feedback_list %}
+{% for f in feedback_list %}
+{% if f.reveal_status != 'revealed' %}
+<div class="modal fade" id="revealModal{{ loop.index }}" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-start border-0">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill me-2"></i>Access Authorization</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div
+          class="alert alert-warning small border-warning mb-4 bg-warning bg-opacity-10 d-flex align-items-start gap-3">
+          <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+          <div>
+            <strong>Critical Warning:</strong> This unmasking operation is permantely recorded on the blockchain ledger.
+            Unauthorized use may lead to disciplinary action.
+          </div>
+        </div>
+        <form action="/authority/reveal/{{ f.id }}" method="post">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-muted text-uppercase">Case Reference / Justification</label>
+            <textarea name="reason" class="form-control" rows="3"
+              placeholder="Provide the required policy justification for unmasking this identity..."
+              required></textarea>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-danger py-2 fw-bold">
+              <i class="bi bi-unlock-fill me-2"></i>Authorize Cryptographic Reveal
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
+
+<script>
+  // Auto-focus the justification textarea when the modal is shown
+  document.addEventListener('shown.bs.modal', function (event) {
+    const modal = event.target;
+    // Small delay to ensure browser rendering is complete
+    setTimeout(() => {
+      const textarea = modal.querySelector('textarea[name="reason"]');
+      if (textarea) {
+        textarea.focus();
+      }
+    }, 50);
+  });
+</script>
 
 <style>
-  /* Local override for table rows to support absolute positioning of the popup */
-  .table-hover tbody tr {
-    position: relative;
+  /* Make modals feel more snappy and professional */
+  .modal.fade .modal-dialog {
+    transition: transform 0.2s ease-out;
   }
 </style>
 {% endblock %}

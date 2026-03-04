@@ -124,7 +124,16 @@
                     {% for t in target_list %}
                     <tr>
                       <td class="ps-3 align-middle border-0 py-2">
-                        <i class="bi bi-person-badge text-primary me-2"></i>{{ t.username }}
+                        <div class="d-flex align-items-center justify-content-between">
+                          <span><i class="bi bi-person-badge text-primary me-2"></i>{{ t.username }}</span>
+                          {% if t.is_verified %}
+                          <span class="badge bg-success-subtle text-success border-0 small"
+                            style="font-size: 0.7rem;">Verified</span>
+                          {% else %}
+                          <span class="badge bg-warning-subtle text-warning border-0 small"
+                            style="font-size: 0.7rem;">Verification Pending</span>
+                          {% endif %}
+                        </div>
                       </td>
                       <td class="text-end pe-3 border-0 py-2">
                         <form action="/admin/delete-target/{{ t.username }}" method="post" class="d-inline"
