@@ -13,17 +13,20 @@ import jwt
 import time
 from flask_mail import Mail, Message
 import secrets
+import requests
 
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "any_random_long_secret_here"
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "any_random_long_secret_here")
 
-# ---------- MongoDB ----------
-MONGO_URI = "mongodb://localhost:27017/"
-client = MongoClient(MONGO_URI)
-db = client["feedback_platform_db"]
+# ---------- Supabase REST API Config ----------
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    print("Warning: Missing Supabase credentials in .env")
 # ---------- Mail Configuration ----------
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
@@ -35,29 +38,9 @@ mail = Mail(app)
 
 BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:5000')
 
-# Migration: Rename old collections if they exist (authentication only)
-def migrate_collections():
-    # 1. Rename collections
-    old_to_new = {
-        "participants": "users",
-        "entities": "targets",
-        "moderators": "authorities"
-    }
-    existing_collections = db.list_collection_names()
-    for old, new in old_to_new.items():
-        if old in existing_collections and new not in existing_collections:
-            db[old].rename(new)
-    
-migrate_collections()
-
-# Separate collections for each role (Authentication Only)
-users_col = db["users"]             # {username, password, role="user"}
-targets_col = db["targets"]         # {username, password, role="target"}
-admins_col = db["admins"]           # {username, password, role="admin"}
-authorities_col = db["authorities"] # {username, password, role="authority"}
 
 # secret salt for user anonymity (stored on-chain)
-USER_SALT = "some_fixed_random_salt"
+USER_SALT = os.getenv("USER_SALT", "some_fixed_random_salt")
 
 # ---------- Real Blockchain (Web3) Setup ----------
 RPC_URL = os.getenv("RPC_URL", "http://127.0.0.1:8545")
@@ -121,78 +104,7 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def is_email_taken(email):
-    """Checks if an email is already used in any of the user-related collections."""
-    query = {"email": {"$regex": f"^{email}$", "$options": "i"}}
-    if users_col.find_one(query): return True
-    if targets_col.find_one(query): return True
-    if admins_col.find_one(query): return True
-    if authorities_col.find_one(query): return True
-    return False
 
-def create_default_admin():
-    """Create default admin user if none exists in admins collection."""
-    if admins_col.count_documents({"role": "admin"}) == 0:
-        email = "admin@example.com"
-        if not is_email_taken(email):
-            admins_col.insert_one({
-                "username": "admin",
-                "password": generate_password_hash("admin123"),  # hashed demo creds
-                "role": "admin",
-                "email": email,
-                "is_verified": True
-            })
-
-def create_default_authority():
-    """Create default authority user if none exists."""
-    if authorities_col.count_documents({"role": "authority"}) == 0:
-        email = "authority@example.com"
-        if not is_email_taken(email):
-            authorities_col.insert_one({
-                "username": "authority",
-                "password": generate_password_hash("auth123"),    # hashed demo creds
-                "role": "authority",
-                "email": email,
-                "is_verified": True
-            })
-
-def send_verification_email(email, username, token, role):
-    """Sends a real SMTP verification email."""
-    verify_url = f"{BASE_URL}/verify-email/{token}?role={role}"
-    msg = Message("Verify Your Account - Secure Feedback System",
-                  recipients=[email])
-    msg.body = f"Hello {username},\n\nAn account has been created for you. Please click the link below to verify your email and set your password:\n\n{verify_url}\n\nIf you did not expect this, please ignore this email."
-    try:
-        mail.send(msg)
-        print(f"SUCCESS: Verification email sent to {email}")
-        return True
-    except Exception as e:
-        print(f"ERROR sending email: {e}")
-        return False
-
-def migrate_to_hashed_passwords():
-    """One-time migration: Hashing any plain-text passwords and auto-verifying existing users."""
-    collections = [users_col, targets_col, admins_col, authorities_col]
-    for col in collections:
-        for user in col.find():
-            updates = {}
-            
-            # 1. Hash plain-text passwords
-            pwd = user.get("password", "")
-            if pwd and not pwd.startswith(("pbkdf2:", "scrypt:")):
-                updates["password"] = generate_password_hash(pwd)
-            
-            # 2. Grandfather existing users: Mark as verified if the field is missing
-            if "is_verified" not in user:
-                updates["is_verified"] = True
-                if "email" not in user:
-                    updates["email"] = f"{user.get('username')}@legacy.system"
-            
-            if updates:
-                col.update_one({"_id": user["_id"]}, {"$set": updates})
-    print("Security Migration: Plain-text passwords hashed and existing users auto-verified.")
-
-migrate_to_hashed_passwords()
 
 # get_last_block removed (redundant)
 
@@ -265,50 +177,54 @@ def create_block(feedback_id: ObjectId, feedback_data: dict, encrypted_user: str
 
 
 def current_user():
-    if "username" in session:
-        return {
-            "username": session["username"],
-            "role": session["role"]
+    """Returns the current user details securely stored in the session by verifying with Supabase."""
+    access_token = request.cookies.get("sb-access-token")
+    if not access_token or not SUPABASE_URL:
+        return None
+    
+    try:
+        # Validate the token securely with Supabase REST API
+        url = f"{SUPABASE_URL}/auth/v1/user"
+        headers = {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {access_token}"
         }
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            user_data = response.json()
+            # Extract role and username mapped during creation
+            app_meta = user_data.get("app_metadata", {})
+            user_meta = user_data.get("user_metadata", {})
+            
+            role = user_meta.get("role", "user")
+            username = user_meta.get("username", user_data.get("email"))
+            return {
+                "id": user_data.get("id"),
+                "email": user_data.get("email"),
+                "username": username,
+                "role": role
+            }
+    except Exception as e:
+        print(f"Session validation failed: {str(e)}")
+        return None
     return None
 
-
-def create_jwt_token(username, role):
-    payload = {
-        "username": username,
-        "role": role,
-        "exp": time.time() + 3600  # Token expires in 1 hour
-    }
-    return jwt.encode(payload, app.secret_key, algorithm="HS256")
-
-def verify_jwt_token(token):
-    try:
-        decoded = jwt.decode(token, app.secret_key, algorithms=["HS256"])
-        return decoded
-    except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
-        return None
-
 def login_required(role=None):
+    """Decorator to enforce Supabase Auth session validation and role checks."""
     def decorator(fn):
         def wrapper(*args, **kwargs):
             user = current_user()
             if not user:
                 return redirect(url_for("login"))
             
-            # Additional JWT verification for enhanced security
-            token = session.get("jwt_token")
-            if not token:
-                return redirect(url_for("login"))
-            
-            payload = verify_jwt_token(token)
-            if not payload or payload["username"] != user["username"] or payload["role"] != user["role"]:
-                session.clear()
-                return redirect(url_for("login"))
+            # Pass the user data to the session so templates can render username/roles effortlessly
+            session["username"] = user["username"]
+            session["role"] = user["role"]
 
             if role and user["role"] != role:
-                return "Unauthorized", 403
+                return "Unauthorized Access", 403
+            
             return fn(*args, **kwargs)
         wrapper.__name__ = fn.__name__
         return wrapper
@@ -329,47 +245,51 @@ def home():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
+        email = request.form.get("email")
         password = request.form.get("password")
-        role = request.form.get("role")
 
-        # choose collection based on role
-        if role == "user":
-            col = users_col
-        elif role == "target":
-            col = targets_col
-        elif role == "admin":
-            col = admins_col
-        elif role == "authority":
-            col = authorities_col
-        else:
-            col = None
-
-        user = None
-        if col is not None:
-            user = col.find_one({"username": username, "role": role})
-
-        if user and check_password_hash(user["password"], password):
-            if not user.get("is_verified", False):
-                return render_template("login.html", error="Email not verified. Please check your inbox.", title="Login", heading="Login")
+        try:
+            # Supabase REST Authentication
+            url = f"{SUPABASE_URL}/auth/v1/token?grant_type=password"
+            headers = {
+                "apikey": SUPABASE_ANON_KEY,
+                "Content-Type": "application/json"
+            }
+            data = {
+                "email": email,
+                "password": password
+            }
+            response = requests.post(url, headers=headers, json=data)
             
-            session["username"] = username
-            session["role"] = role
-            # Generate JWT and store in session (could also use a HttpOnly cookie)
-            session["jwt_token"] = create_jwt_token(username, role)
-
+            if response.status_code != 200:
+                raise Exception(response.json().get("error_description", "Invalid login"))
+            
+            auth_response = response.json()
+            user = auth_response.get("user", {})
+            user_meta = user.get("user_metadata", {})
+            role = user_meta.get("role", "user")
+            
+            # Use app.make_response to set secure cookies
             if role == "user":
-                return redirect(url_for("user_submit_feedback"))
+                resp = app.make_response(redirect(url_for("user_submit_feedback")))
             elif role == "target":
-                return redirect(url_for("target_view_feedback"))
+                resp = app.make_response(redirect(url_for("target_view_feedback")))
             elif role == "authority":
-                return redirect(url_for("authority_dashboard"))
+                resp = app.make_response(redirect(url_for("authority_dashboard")))
             else:
-                return redirect(url_for("admin_dashboard"))
-        else:
+                resp = app.make_response(redirect(url_for("admin_dashboard")))
+            
+            # Set the JWT securely in HTTP-only cookies
+            resp.set_cookie("sb-access-token", auth_response.get("access_token"), httponly=True, secure=True)
+            resp.set_cookie("sb-refresh-token", auth_response.get("refresh_token"), httponly=True, secure=True)
+            
+            return resp
+            
+        except Exception as e:
+            print(f"Supabase Login Error: {e}")
             return render_template(
                 "login.html",
-                error="Invalid credentials",
+                error="Invalid credentials. Please verify your email and password.",
                 title="Login",
                 heading="Login",
             )
@@ -415,7 +335,60 @@ def verify_email(token):
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    resp = app.make_response(redirect(url_for("login")))
+    resp.delete_cookie("sb-access-token")
+    resp.delete_cookie("sb-refresh-token")
+    try:
+        access_token = request.cookies.get("sb-access-token")
+        if access_token and SUPABASE_URL:
+             url = f"{SUPABASE_URL}/auth/v1/logout"
+             headers = {
+                 "apikey": SUPABASE_ANON_KEY,
+                 "Authorization": f"Bearer {access_token}"
+             }
+             requests.post(url, headers=headers)
+    except Exception:
+        pass
+    return resp
+
+
+@app.route("/update-password", methods=["GET", "POST"])
+def update_password():
+    """Handles setting/updating a password after clicking an email invite link."""
+    # The GET request just renders the form which includes JS to parse the URL hash
+    if request.method == "GET":
+        return render_template("update_password.html", title="Set Password")
+        
+    # POST request actually does the update
+    new_password = request.form.get("password")
+    access_token = request.form.get("access_token")
+    
+    if not new_password or not access_token:
+        flash("Missing password or invalid token.", "danger")
+        return redirect(url_for("update_password"))
+        
+    try:
+        url = f"{SUPABASE_URL}/auth/v1/user"
+        headers = {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "password": new_password
+        }
+        response = requests.put(url, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            flash("Password set successfully! You can now log in.", "success")
+            return redirect(url_for("login"))
+        else:
+            flash(f"Error updating password: {response.json().get('error_description', 'Unknown error')}", "danger")
+            return redirect(url_for("update_password"))
+            
+    except Exception as e:
+        flash("Connection error while setting password.", "danger")
+        return redirect(url_for("update_password"))
 
 @app.route("/jwt-status")
 @login_required()
@@ -514,9 +487,24 @@ def user_submit_feedback():
         return redirect(url_for("user_submit_feedback"))
 
     # GET – show form with targets list
-    target_list = list(
-        targets_col.find({"role": "target"}, {"username": 1, "_id": 0})
-    )
+    target_list = []
+    try:
+        if SUPABASE_URL:
+            url = f"{SUPABASE_URL}/auth/v1/admin/users"
+            headers = {
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+            }
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                users_data = response.json().get("users", [])
+                for u in users_data:
+                    user_meta = u.get("user_metadata", {})
+                    if user_meta.get("role") == "target":
+                        username = user_meta.get("username", u.get("email"))
+                        target_list.append({"username": username})
+    except Exception as e:
+        print(f"Error loading targets for feedback dropdown: {str(e)}")
     return render_template(
         "submit_feedback.html",
         target_list=target_list,
@@ -589,9 +577,41 @@ def target_view_feedback():
 @app.route("/admin")
 @login_required(role="admin")
 def admin_dashboard():
-    target_list = list(targets_col.find({"role": "target"}, {"username": 1, "is_verified": 1, "email": 1, "_id": 0}))
-    user_list = list(users_col.find({"role": "user"}, {"username": 1, "is_verified": 1, "email": 1, "_id": 0}))
+    target_list = []
+    user_list = []
     
+    # Safely fetch users from Supabase Admin REST API
+    try:
+        if SUPABASE_URL:
+            url = f"{SUPABASE_URL}/auth/v1/admin/users"
+            headers = {
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+            }
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                users_data = response.json().get("users", [])
+                for u in users_data:
+                    user_meta = u.get("user_metadata", {})
+                    role = user_meta.get("role")
+                    username = user_meta.get("username", u.get("email"))
+                    
+                    # Format to match Jinja template expectations
+                    user_record = {
+                        "id": u.get("id"),
+                        "username": username,
+                        "email": u.get("email"),
+                        "is_verified": bool(u.get("email_confirmed_at"))
+                    }
+                    
+                    if role == "target":
+                        target_list.append(user_record)
+                    elif role == "user":
+                        user_list.append(user_record)
+    except Exception as e:
+        print(f"Error loading users from Supabase: {str(e)}")
+        flash("Could not load users from authentication service.", "danger")
+
     feedback_list = []
     compromised_ids = []
     chain_valid = True
@@ -659,27 +679,29 @@ def admin_add_target():
     username = request.form.get("username")
     email = request.form.get("email")
     if username and email:
-        if targets_col.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}):
-            flash(f"Error: Target '{username}' already exists.", "danger")
-            return redirect(url_for("admin_dashboard"))
-        
-        if is_email_taken(email):
-            flash(f"Error: Email '{email}' is already in use by another account.", "danger")
-            return redirect(url_for("admin_dashboard"))
-
-        raw_token = secrets.token_urlsafe(32)
-        hashed_token = sha256(raw_token)
-        targets_col.insert_one({
-            "username": username,
-            "password": "", # Set by user during verification
-            "role": "target",
-            "email": email,
-            "is_verified": False,
-            "verification_token": hashed_token
-        })
-        send_verification_email(email, username, raw_token, "target")
-        print(f"DEBUG_VERIFY: Target: {username}, Raw Token: {raw_token}")
-        flash(f"Verification email sent to target: {username}", "success")
+        try:
+            # Force the redirect back to the Flask app instead of the default port 3000
+            url = f"{SUPABASE_URL}/auth/v1/invite?redirect_to=http://127.0.0.1:5000/update-password"
+            headers = {
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "email": email,
+                "data": {"role": "target", "username": username}
+            }
+            response = requests.post(url, headers=headers, json=data)
+            if response.status_code == 200:
+                flash(f"Verification email sent to target: {username}", "success")
+            else:
+                error_msg = response.json().get("msg", response.json().get("error_description", response.text))
+                if "already registered" in error_msg.lower() or "already exists" in error_msg.lower():
+                    flash(f"Error: The email '{email}' is already registered to an existing account.", "danger")
+                else:
+                    flash(f"Error creating target: {error_msg}", "danger")
+        except Exception as e:
+            flash(f"Error creating target: {str(e)}", "danger")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -689,41 +711,47 @@ def admin_add_user():
     username = request.form.get("username")
     email = request.form.get("email")
     if username and email:
-        if users_col.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}):
-            flash(f"Error: User '{username}' already exists.", "danger")
-            return redirect(url_for("admin_dashboard"))
-
-        if is_email_taken(email):
-            flash(f"Error: Email '{email}' is already in use by another account.", "danger")
-            return redirect(url_for("admin_dashboard"))
-
-        raw_token = secrets.token_urlsafe(32)
-        hashed_token = sha256(raw_token)
-        users_col.insert_one({
-            "username": username,
-            "password": "", # Set by user during verification
-            "role": "user",
-            "email": email,
-            "is_verified": False,
-            "verification_token": hashed_token
-        })
-        send_verification_email(email, username, raw_token, "user")
-        print(f"DEBUG_VERIFY: User: {username}, Raw Token: {raw_token}")
-        flash(f"Verification email sent to user: {username}", "success")
+        try:
+            url = f"{SUPABASE_URL}/auth/v1/invite?redirect_to=http://127.0.0.1:5000/update-password"
+            headers = {
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "email": email,
+                "data": {"role": "user", "username": username}
+            }
+            response = requests.post(url, headers=headers, json=data)
+            if response.status_code == 200:
+                flash(f"Verification email sent to user: {username}", "success")
+            else:
+                error_msg = response.json().get("msg", response.json().get("error_description", response.text))
+                if "already registered" in error_msg.lower() or "already exists" in error_msg.lower():
+                    flash(f"Error: The email '{email}' is already registered to an existing account.", "danger")
+                else:
+                    flash(f"Error creating user: {error_msg}", "danger")
+        except Exception as e:
+            flash(f"Error creating user: {str(e)}", "danger")
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/delete-target/<username>", methods=["POST"])
+@app.route("/admin/delete-user/<user_id>", methods=["POST"])
 @login_required(role="admin")
-def admin_delete_target(username):
-    targets_col.delete_one({"username": username, "role": "target"})
-    return redirect(url_for("admin_dashboard"))
-
-
-@app.route("/admin/delete-user/<username>", methods=["POST"])
-@login_required(role="admin")
-def admin_delete_user(username):
-    users_col.delete_one({"username": username, "role": "user"})
+def admin_delete_user(user_id):
+    try:
+        url = f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}"
+        headers = {
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+        }
+        response = requests.delete(url, headers=headers)
+        if response.status_code == 200:
+            flash("User deleted successfully.", "success")
+        else:
+            flash(f"Failed to delete user: {response.text}", "danger")
+    except Exception as e:
+        flash(f"Failed to delete user: {e}", "danger")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -915,8 +943,5 @@ def authority_audit_logs():
 
 # ---------- Main ----------
 if __name__ == "__main__":
-    create_default_admin()
-    create_default_authority()
-    # Disabling reloader to ensure code changes are picked up automatically.
     # Note: disabled reloader to fix WinError 10038 on Windows + Python 3.13
     app.run(debug=True, use_reloader=False)

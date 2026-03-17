@@ -136,7 +136,7 @@
                         </div>
                       </td>
                       <td class="text-end pe-3 border-0 py-2">
-                        <form action="/admin/delete-target/{{ t.username }}" method="post" class="d-inline"
+                        <form action="/admin/delete-user/{{ t.id }}" method="post" class="d-inline"
                           onsubmit="return confirm('Remove target {{ t.username }}?');">
                           <button class="btn btn-sm text-danger p-0 border-0"><i class="bi bi-trash"></i></button>
                         </form>
@@ -176,7 +176,7 @@
                         </div>
                       </td>
                       <td class="text-end pe-3 border-0 py-2">
-                        <form action="/admin/delete-user/{{ u.username }}" method="post" class="d-inline"
+                        <form action="/admin/delete-user/{{ u.id }}" method="post" class="d-inline"
                           onsubmit="return confirm('Remove user {{ u.username }}?');">
                           <button class="btn btn-sm text-danger p-0 border-0"><i class="bi bi-trash"></i></button>
                         </form>
