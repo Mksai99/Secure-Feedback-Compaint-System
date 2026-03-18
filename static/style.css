@@ -179,7 +179,100 @@ a {
 @media (min-width: 992px) {
     .layout-with-sidebar .main-content {
         margin-left: 280px;
+        width: calc(100% - 280px);
     }
+}
+
+/* Fluid Table Layouts */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-xl);
+}
+
+@media (min-width: 1400px) {
+    .table-responsive {
+        overflow-x: visible; /* Remove scroll on very large screens */
+    }
+}
+
+.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table th, .table td {
+    white-space: normal; /* Allow wrapping by default */
+}
+
+/* Column Utilities - Min Widths instead of Fixed Widths */
+.col-type { min-width: 120px; }
+.col-category { min-width: 150px; }
+.col-priority { min-width: 100px; }
+.col-score { min-width: 110px; }
+.col-date { min-width: 110px; }
+.col-status { min-width: 120px; }
+.col-actions { min-width: 160px; text-align: right; }
+
+/* Responsive Hide */
+@media (max-width: 1200px) {
+    .hide-md { display: none; }
+}
+
+@media (max-width: 991px) {
+    .hide-sm { display: none; }
+}
+
+/* --- Filter & Search Bar styling --- */
+.filter-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.filter-input-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-select {
+    min-width: 150px;
+    flex: 0 0 auto;
+}
+
+.sort-header {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 1.5rem !important;
+}
+
+.sort-header:after {
+    content: '\F128'; /* Bootstrap Icon chevron-expand */
+    font-family: 'bootstrap-icons';
+    position: absolute;
+    right: 0.5rem;
+    opacity: 0.3;
+}
+
+.sort-header.sort-asc:after {
+    content: '\F124'; /* chevron-up */
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.sort-header.sort-desc:after {
+    content: '\F121'; /* chevron-down */
+    opacity: 1;
+    color: var(--accent-color);
 }
 
 /* --- Components --- */
@@ -328,7 +421,7 @@ h6 {
 }
 
 .table tbody td {
-    padding: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
     vertical-align: middle;
     color: var(--text-main);
     border-bottom: 1px solid var(--border-color);
@@ -336,7 +429,32 @@ h6 {
 }
 
 .table-hover tbody tr:hover {
-    background-color: #F8FAFC;
+    background-color: var(--primary-light);
+}
+
+/* --- Dashboard Table Column Control --- */
+.col-type { width: 140px; }
+.col-category { width: 180px; }
+.col-priority { width: 110px; }
+.col-score { width: 130px; }
+.col-status { width: 140px; }
+.col-date { width: 120px; white-space: nowrap; }
+.col-actions { width: 120px; }
+
+/* Standardized Badges */
+.badge {
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    padding: 0.45em 0.85em;
+}
+
+.badge-fixed-width {
+    width: 110px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
 }
 
 /* Status Badges */

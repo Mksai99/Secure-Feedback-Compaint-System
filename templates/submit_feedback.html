@@ -25,12 +25,34 @@
 
     <div class="card-custom p-4 p-md-5">
 
-      <form action="/user/provide-feedback" method="post">
+      <form action="/user/provide-feedback" method="post" id="feedbackForm">
+        
+        <!-- Submission Type Selector -->
+        <h5 class="fw-bold mb-4">Submission Type</h5>
+        <div class="row g-3 mb-5">
+          <div class="col-md-6">
+            <input type="radio" class="btn-check" name="submission_type" id="type_feedback" value="feedback" autocomplete="off" checked>
+            <label class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center justify-content-center h-100 rounded-3 shadow-sm hover-lift" for="type_feedback">
+              <i class="bi bi-chat-square-text fs-3 mb-2"></i>
+              <span class="fw-bold">General Feedback</span>
+              <small class="opacity-75 mt-1 d-block text-center" style="font-size: 0.8rem;">Evaluate performance or share suggestions.</small>
+            </label>
+          </div>
+          <div class="col-md-6">
+            <input type="radio" class="btn-check" name="submission_type" id="type_complaint" value="complaint" autocomplete="off">
+            <label class="btn btn-outline-danger w-100 py-3 d-flex flex-column align-items-center justify-content-center h-100 rounded-3 shadow-sm hover-lift" for="type_complaint">
+              <i class="bi bi-exclamation-triangle fs-3 mb-2"></i>
+              <span class="fw-bold">Formal Complaint</span>
+              <small class="opacity-75 mt-1 d-block text-center" style="font-size: 0.8rem;">Report a violation or serious issue.</small>
+            </label>
+          </div>
+        </div>
+        <hr class="my-5 opacity-10">
 
         <!-- Context -->
         <div class="row g-4 mb-4">
           <div class="col-md-6">
-            <label class="form-label text-uppercase small text-muted fw-bold">Target</label>
+            <label class="form-label text-uppercase small text-muted fw-bold">Target Entity</label>
             <select name="target_username" class="form-select form-select-lg" required>
               <option value="" disabled selected>Select target...</option>
               {% for t in target_list %}
@@ -38,24 +60,26 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-md-6">
-            <label class="form-label text-uppercase small text-muted fw-bold">Feedback Category</label>
-            <select name="category" class="form-select form-select-lg" required>
-              <option value="General Feedback">General Feedback</option>
-              <option value="Service Quality">Service Quality</option>
-              <option value="Technical Issue">Technical Issue</option>
-              <option value="Safety Concern">Safety Concern</option>
-              <option value="Performance Review">Performance Review</option>
-              <option value="Policy Suggestion">Policy Suggestion</option>
+          
+          <!-- Category (Only for Complaints) -->
+          <div class="col-md-6" id="category_section" style="display: none;">
+            <label class="form-label text-uppercase small text-muted fw-bold">Complaint Category</label>
+            <select name="category" id="category_select" class="form-select form-select-lg">
+              <option value="Policy Violation">Policy Violation</option>
+              <option value="Harassment">Harassment</option>
+              <option value="Security Incident">Security Incident</option>
+              <option value="Unethical Behavior">Unethical Behavior</option>
+              <option value="Service Failure">Service Failure</option>
               <option value="Other">Other</option>
             </select>
           </div>
         </div>
 
-        <div class="row g-4 mb-4">
+        <!-- Priority (Only for Complaints) -->
+        <div class="row g-4 mb-4" id="priority_section" style="display: none;">
           <div class="col-md-6">
             <label class="form-label text-uppercase small text-muted fw-bold">Priority Level</label>
-            <select name="priority" class="form-select" required>
+            <select name="priority" id="priority_select" class="form-select">
               <option value="Low">Low</option>
               <option value="Medium" selected>Medium</option>
               <option value="High">High</option>
@@ -66,45 +90,46 @@
 
         <hr class="my-5 opacity-10">
 
-        <!-- Ratings -->
-        <h5 class="fw-bold mb-4">Feedback Indicators (Optional)</h5>
-        <div class="row g-4 mb-5">
-          {% for criteria in [
-          ('1', 'Quality of Service'),
-          ('2', 'Communication'),
-          ('3', 'Timeliness'),
-          ('4', 'Reliability')
-          ] %}
-          <div class="col-md-6">
-            <div
-              class="p-3 border rounded-3 bg-light bg-opacity-25 h-100 d-flex flex-column align-items-center justify-content-center text-center">
-              <label class="fw-bold mb-2">{{ criteria[1] }}</label>
-              <div class="star-rating-wrapper">
-                <div class="star-rating">
-                  {% for val in [5,4,3,2,1] %}
-                  <input type="radio" id="rating_{{ criteria[0] }}-{{ val }}" name="rating_{{ criteria[0] }}"
-                    value="{{ val }}" {% if val==5 %}required{% endif %} />
-                  <label for="rating_{{ criteria[0] }}-{{ val }}" title="{{ val }} stars">
-                    <i class="bi bi-star-fill"></i>
-                  </label>
-                  {% endfor %}
+        <!-- Ratings (Only for Feedback) -->
+        <div id="ratings_section">
+          <h5 class="fw-bold mb-4">Feedback Indicators (Optional)</h5>
+          <div class="row g-4 mb-5">
+            {% for criteria in [
+            ('1', 'Quality of Service'),
+            ('2', 'Communication'),
+            ('3', 'Timeliness'),
+            ('4', 'Reliability')
+            ] %}
+            <div class="col-md-6">
+              <div
+                class="p-3 border rounded-3 bg-light bg-opacity-25 h-100 d-flex flex-column align-items-center justify-content-center text-center">
+                <label class="fw-bold mb-2">{{ criteria[1] }}</label>
+                <div class="star-rating-wrapper">
+                  <div class="star-rating">
+                    {% for val in [5,4,3,2,1] %}
+                    <input type="radio" id="rating_{{ criteria[0] }}-{{ val }}" name="rating_{{ criteria[0] }}"
+                      value="{{ val }}" />
+                    <label for="rating_{{ criteria[0] }}-{{ val }}" title="{{ val }} stars">
+                      <i class="bi bi-star-fill"></i>
+                    </label>
+                    {% endfor %}
+                  </div>
                 </div>
               </div>
             </div>
+            {% endfor %}
           </div>
-          {% endfor %}
         </div>
 
         <!-- Comments -->
         <div class="mb-5">
-          <label class="form-label text-uppercase small text-muted fw-bold">Feedback Details</label>
+          <label class="form-label text-uppercase small text-muted fw-bold" id="description_label">Feedback Details</label>
           <textarea name="description" rows="5" class="form-control"
-            placeholder="Provide additional details or context for your feedback..." required></textarea>
-          <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i> Feedback is permanently recorded on the
-            ledger.</div>
+            placeholder="Provide additional details or context..." required></textarea>
+          <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i> This submission is permanently recorded on the ledger.</div>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 shadow-sm hover-lift">
+        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 shadow-sm hover-lift" id="submit_btn">
           <i class="bi bi-shield-lock-fill me-2"></i> Submit Anonymous Feedback
         </button>
 
@@ -112,4 +137,66 @@
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const typeFeedback = document.getElementById("type_feedback");
+    const typeComplaint = document.getElementById("type_complaint");
+    
+    const categorySection = document.getElementById("category_section");
+    const categorySelect = document.getElementById("category_select");
+    const prioritySection = document.getElementById("priority_section");
+    const prioritySelect = document.getElementById("priority_select");
+    
+    const ratingsSection = document.getElementById("ratings_section");
+    const descriptionLabel = document.getElementById("description_label");
+    const submitBtn = document.getElementById("submit_btn");
+
+    function toggleFormMode() {
+      if (typeComplaint.checked) {
+        // Switch to Complaint Mode
+        categorySection.style.display = "block";
+        categorySelect.required = true;
+        categorySelect.disabled = false;
+        
+        prioritySection.style.display = "block";
+        prioritySelect.required = true;
+        prioritySelect.disabled = false;
+        
+        ratingsSection.style.display = "none";
+        // Disable all ratings inputs so they aren't sent
+        ratingsSection.querySelectorAll('input').forEach(i => i.disabled = true);
+        
+        descriptionLabel.innerText = "Complaint Details / Incident Description";
+        
+        submitBtn.className = "btn btn-danger btn-lg w-100 py-3 shadow-sm hover-lift";
+        submitBtn.innerHTML = '<i class="bi bi-shield-exclamation me-2"></i> Submit Anonymous Complaint';
+        
+      } else {
+        // Switch to Feedback Mode
+        categorySection.style.display = "none";
+        categorySelect.required = false;
+        categorySelect.disabled = true; // Disable so it's not sent
+        
+        prioritySection.style.display = "none";
+        prioritySelect.required = false;
+        prioritySelect.disabled = true; // Disable so it's not sent
+        
+        ratingsSection.style.display = "block";
+        ratingsSection.querySelectorAll('input').forEach(i => i.disabled = false);
+        
+        descriptionLabel.innerText = "Feedback Details";
+        
+        submitBtn.className = "btn btn-primary btn-lg w-100 py-3 shadow-sm hover-lift";
+        submitBtn.innerHTML = '<i class="bi bi-shield-lock-fill me-2"></i> Submit Anonymous Feedback';
+      }
+    }
+
+    typeFeedback.addEventListener("change", toggleFormMode);
+    typeComplaint.addEventListener("change", toggleFormMode);
+    
+    // Initial run
+    toggleFormMode();
+  });
+</script>
 {% endblock %}

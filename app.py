@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 import json
+import logging
 from datetime import datetime
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -14,6 +15,10 @@ import time
 from flask_mail import Mail, Message
 import secrets
 import requests
+
+# Configure Logging
+logging.basicConfig(filename='app_error.log', level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)s: %(message)s')
 
 load_dotenv()
 
@@ -163,9 +168,9 @@ def create_block(feedback_id: ObjectId, feedback_data: dict, encrypted_user: str
         print(f"SUCCESS: Feedback {fb_id_str} recorded on-chain with ratings. TX: {tx_receipt.transactionHash.hex()}")
         return True
     except Exception as e:
-        print(f"CRITICAL BLOCKCHAIN ERROR in create_block for {feedback_id}: {e}")
-        import traceback
-        traceback.print_exc()
+        error_msg = f"CRITICAL BLOCKCHAIN ERROR in create_block for {feedback_id}: {e}"
+        print(error_msg)
+        logging.error(error_msg, exc_info=True)
         return False
 
 
@@ -414,21 +419,32 @@ def jwt_status():
 @login_required(role="user")
 def user_submit_feedback():
     if request.method == "POST":
+        submission_type = request.form.get("submission_type", "feedback")
         target_name = request.form.get("target_username")
-        category = request.form.get("category")
         description = request.form.get("description")
-        print(f"DEBUG: Feedback submission received for {target_name}. Description: {description}")
+        
+        # Default values
+        category = "General Feedback"
+        priority = "Low"
+        rating_1 = 0
+        rating_2 = 0
+        rating_3 = 0
+        rating_4 = 0
 
-        priority = request.form.get("priority", "Medium")
+        if submission_type == "complaint":
+            category = request.form.get("category", "Other")
+            priority = request.form.get("priority", "Medium")
+        else:
+            # It's feedback
+            rating_1 = int(request.form.get("rating_1", 0))
+            rating_2 = int(request.form.get("rating_2", 0))
+            rating_3 = int(request.form.get("rating_3", 0))
+            rating_4 = int(request.form.get("rating_4", 0))
+
+        print(f"DEBUG: {submission_type.upper()} submission received for {target_name}. Category: {category}")
+
         created_at = datetime.utcnow().isoformat()
-
-        # optional indicator ratings
-        rating_1 = int(request.form.get("rating_1", 0))
-        rating_2 = int(request.form.get("rating_2", 0))
-        rating_3 = int(request.form.get("rating_3", 0))
-        rating_4 = int(request.form.get("rating_4", 0))
-
-        avg_rating = round((rating_1 + rating_2 + rating_3 + rating_4) / 4.0, 2)
+        avg_rating = round((rating_1 + rating_2 + rating_3 + rating_4) / 4.0, 2) if submission_type == "feedback" else 0.0
 
         user_username = session["username"]
         # anonymized user id

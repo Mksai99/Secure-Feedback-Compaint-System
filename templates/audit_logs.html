@@ -25,20 +25,20 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.95rem;">
                 <thead class="bg-light text-uppercase small text-muted"
-                    style="letter-spacing: 0.05em; font-size: 0.7rem;">
+                    style="letter-spacing: 0.05em; font-size: 0.75rem;">
                     <tr>
-                        <th class="ps-4">Timestamp (UTC)</th>
-                        <th>Auditor Identity</th>
-                        <th>Action Performed</th>
-                        <th>Reference ID</th>
-                        <th>Mandatory Justification</th>
+                        <th class="ps-4 col-date">Timestamp (UTC)</th>
+                        <th class="col-status">Auditor</th>
+                        <th class="col-type">Action</th>
+                        <th class="col-priority">Reference</th>
+                        <th class="pe-4">Mandatory Justification</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for log in logs %}
-                    <tr class="border-bottom">
-                        <td class="ps-4 font-monospace text-muted small">{{ log.timestamp.split('.')[0].replace('T', '
-                            ') }}</td>
+                        <td class="ps-4 col-date font-monospace text-muted small" style="line-height:1.2;">
+                            {{ log.timestamp.split('.')[0].replace('T', ' ') }}
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
@@ -49,13 +49,12 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge badge-revealed px-3 py-1">
-                                <i class="bi bi-unlock-fill me-1"></i> {{ log.action }}
+                            <span class="badge badge-revealed badge-fixed-width" style="font-size: 0.65rem;">
+                                <i class="bi bi-unlock-fill"></i> {{ log.action }}
                             </span>
                         </td>
                         <td>
-                            <code
-                                class="text-secondary bg-light px-2 py-1 rounded small">{{ log.feedback_id[:8] }}...</code>
+                            <code class="text-secondary bg-light px-2 py-1 rounded small border">{{ log.feedback_id[:8] }}</code>
                         </td>
                         <td>
                             <div

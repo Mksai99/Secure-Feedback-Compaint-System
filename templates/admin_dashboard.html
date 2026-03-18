@@ -207,62 +207,106 @@
             (Blockchain)</h5>
         </div>
 
+        <!-- Filter & Search Bar -->
+        <div class="filter-bar border-top-0 border-start-0 border-end-0 rounded-0 px-4 py-3 mb-0">
+          <div class="filter-input-group">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" id="tableSearch" class="form-control border-start-0" placeholder="Search by target, category, or description...">
+            </div>
+          </div>
+          <div class="filter-select">
+            <select id="typeFilter" class="form-select form-select-sm">
+              <option value="all">All Types</option>
+              <option value="feedback">Feedback Only</option>
+              <option value="complaint">Complaint Only</option>
+            </select>
+          </div>
+          <div class="filter-select">
+            <select id="ratingFilter" class="form-select form-select-sm">
+              <option value="all">Any Rating</option>
+              <option value="5">5 Stars</option>
+              <option value="4">4 Stars</option>
+              <option value="3">3 Stars</option>
+              <option value="2">2 Stars</option>
+              <option value="1">1 Star</option>
+            </select>
+          </div>
+        </div>
+
         {% if feedback_list %}
+
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead>
-              <tr>
-                <th class="ps-4">Target</th>
-                <th>Category</th>
-                <th>Priority</th>
-                <th>Avg Score</th>
-                <th style="width: 30%;">Feedback Description</th>
-                <th>Timestamp</th>
-                <th>On-Chain TX</th>
-                <th class="text-end pe-4">Manage</th>
+              <tr class="text-uppercase small fw-bold text-muted" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+                <th class="ps-4 sort-header" data-sort="target">Target</th>
+                <th class="col-type">Type</th>
+                <th class="col-category">Category</th>
+                <th class="col-priority sort-header" data-sort="priority">Priority</th>
+                <th class="col-score sort-header" data-sort="score">Avg Score</th>
+                <th class="hide-md">Snippet</th>
+                <th class="col-date sort-header" data-sort="date">Timestamp</th>
+                <th class="text-end pe-4 col-actions">Manage</th>
               </tr>
             </thead>
             <tbody>
               {% for f in feedback_list %}
               <tr>
-                <td class="ps-4 fw-bold text-primary">{{ f.target_name }}</td>
-                <td><span class="badge bg-light text-dark border">{{ f.category or "-" }}</span></td>
+                <td class="ps-4 fw-bold text-primary" data-col="target">{{ f.target_name }}</td>
                 <td>
+                  {% if f.category == 'General Feedback' %}
+                  <span class="badge bg-success text-white badge-fixed-width">
+                    <i class="bi bi-chat-heart-fill"></i> FEEDBACK
+                  </span>
+                  {% else %}
+                  <span class="badge bg-danger text-white badge-fixed-width">
+                    <i class="bi bi-exclamation-octagon-fill"></i> COMPLAINT
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                   <span class="fw-bold text-dark small">
+                    {% if f.category == 'General Feedback' %}
+                    <i class="bi bi-tag-fill me-1 text-success"></i> {{ f.category }}
+                    {% else %}
+                    <i class="bi bi-flag-fill me-1 text-danger"></i> {{ f.category }}
+                    {% endif %}
+                   </span>
+                </td>
+                <td data-col="priority">
+                  {% if f.category != 'General Feedback' %}
                   <span
-                    class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning' if f.priority == 'High' else 'bg-primary' if f.priority == 'Medium' else 'bg-info' }} rounded-pill px-2 py-1">
+                    class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' }} rounded-pill px-3">
                     {{ f.priority }}
                   </span>
+                  {% else %}
+                  <span class="text-muted small">N/A</span>
+                  {% endif %}
                 </td>
-                <td>
-                  <span class="badge {{ 'bg-success' if f.avg >= 4 else 'bg-warning' if f.avg >= 3 else 'bg-danger' }}">
-                    {{ f.avg }}
-                  </span>
-                </td>
-                <td>
-                  <div class="text-break text-secondary small" style="max-width: 400px;">
-                    {{ f.description }}
-                  </div>
-                </td>
-                <td class="text-muted small">{{ f.created_at[:10] }} <span class="text-secondary-subtle">{{
-                    f.created_at[11:16] }}</span></td>
-                <td>
-                  <div class="d-flex flex-column gap-1">
-                    {% if f.tx_hash and f.tx_hash != "NOT IN DB" and f.tx_hash != "ON-CHAIN ONLY" %}
-                    <a href="#" class="badge bg-indigo-subtle text-primary text-decoration-none font-monospace"
-                      title="{{ f.tx_hash }}" style="cursor: help;">
-                      {{ f.tx_hash[:6] }}...{{ f.tx_hash[-4:] }}
-                    </a>
-                    {% endif %}
-
-                    <span
-                      class="badge {{ 'bg-success' if f.status == 'Verified' else 'bg-warning' if 'Missing' in f.status else 'bg-danger' }} rounded-pill"
-                      style="font-size: 0.65rem;">
-                      {{ f.status }}
+                <td data-col="score">
+                  {% if f.category == 'General Feedback' %}
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="fw-bold {{ 'text-success' if f.avg >= 4 else 'text-warning' if f.avg >= 3 else 'text-danger' }}">
+                      {{ f.avg }}
                     </span>
+                    <i class="bi bi-star-fill small {{ 'text-success' if f.avg >= 4 else 'text-warning' if f.avg >= 3 else 'text-danger' }}"></i>
+                  </div>
+                  {% else %}
+                  <span class="text-muted small">N/A</span>
+                  {% endif %}
+                </td>
+                <td class="hide-md">
+                  <div class="text-truncate text-secondary small" style="max-width: 150px; font-style: italic;" title="{{ f.description }}">
+                    "{{ f.description }}"
                   </div>
                 </td>
-                <td class="text-end pe-4">
-                  <span class="badge bg-light text-muted border">Immutable</span>
+                <td class="text-muted small col-date" data-col="date">
+                  {{ f.created_at[:10] }}
+                  <div class="text-secondary-subtle" style="font-size: 0.75rem;">{{ f.created_at[11:16] }}</div>
+                </td>
+                <td class="text-end pe-4 col-actions">
+                  <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.65rem;">Immutable</span>
                 </td>
               </tr>
               {% endfor %}

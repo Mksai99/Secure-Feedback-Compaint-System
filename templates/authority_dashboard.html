@@ -36,28 +36,56 @@
       </span>
     </div>
 
+    <!-- Filter & Search Bar -->
+    <div class="filter-bar px-4 py-3">
+      <div class="filter-input-group">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="tableSearch" class="form-control border-start-0" placeholder="Search by recipient, category, or details...">
+        </div>
+      </div>
+      <div class="filter-select">
+        <select id="typeFilter" class="form-select form-select-sm">
+          <option value="all">All Types</option>
+          <option value="feedback">Feedback Only</option>
+          <option value="complaint">Complaint Only</option>
+        </select>
+      </div>
+      <div class="filter-select">
+        <select id="ratingFilter" class="form-select form-select-sm">
+          <option value="all">Any Rating</option>
+          <option value="5">5 Stars</option>
+          <option value="4">4 Stars</option>
+          <option value="3">3 Stars</option>
+          <option value="2">2 Stars</option>
+          <option value="1">1 Star</option>
+        </select>
+      </div>
+    </div>
+
     <div class="p-0">
+
       {% if feedback_list %}
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="bg-light">
             <tr class="text-uppercase small fw-bold text-muted" style="font-size: 0.7rem; letter-spacing: 0.05em;">
-              <th class="ps-4">Recipient Entity</th>
-              <th>Category & Priority</th>
-              <th>System Score</th>
-              <th>Feedback Summary</th>
-              <th>Filed On</th>
-              <th>Cryptographic Status</th>
-              <th class="pe-4 text-end">Security Actions</th>
+              <th class="ps-4 sort-header" data-sort="target">Recipient</th>
+              <th class="col-type">Type</th>
+              <th class="col-category">Classification</th>
+              <th class="col-priority sort-header" data-sort="priority">Priority</th>
+              <th class="col-score sort-header" data-sort="score">Satisfaction</th>
+              <th class="hide-lg">Snippet</th>
+              <th class="col-date sort-header hide-md" data-sort="date">Filed On</th>
+              <th class="pe-4 text-end">Access Control</th>
             </tr>
           </thead>
           <tbody>
             {% for f in feedback_list %}
-            <tr
-              class="{{ 'priority-critical' if f.priority == 'Critical' else 'priority-high' if f.priority == 'High' else '' }}">
-              <td class="ps-4">
+            <tr class="{{ 'priority-critical' if f.priority == 'Critical' else 'priority-high' if f.priority == 'High' else '' }}">
+              <td class="ps-4" data-col="target">
                 <div class="d-flex align-items-center gap-2">
-                  <div class="bg-light rounded-circle d-flex align-items-center justify-content-center border"
+                  <div class="bg-light rounded-circle d-flex align-items-center justify-content-center border hide-sm"
                     style="width: 32px; height: 32px;">
                     <i class="bi bi-building text-secondary shadow-sm"></i>
                   </div>
@@ -65,57 +93,76 @@
                 </div>
               </td>
               <td>
-                <span class="badge bg-white text-secondary border px-2 py-1 mb-1 d-inline-block">{{ f.category or
-                  "General" }}</span>
-                <br>
-                <span
-                  class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' if f.priority == 'Medium' else 'bg-info' }} shadow-sm">
-                  {{ f.priority }}
+                {% if f.category == 'General Feedback' %}
+                <span class="badge bg-success text-white badge-fixed-width">
+                  <i class="bi bi-chat-heart-fill"></i> FEEDBACK
                 </span>
+                {% else %}
+                <span class="badge bg-danger text-white badge-fixed-width">
+                  <i class="bi bi-exclamation-octagon-fill"></i> COMPLAINT
+                </span>
+                {% endif %}
               </td>
               <td>
+                <span class="fw-bold text-dark small">
+                   {% if f.category == 'General Feedback' %}
+                   <i class="bi bi-tag-fill me-1 text-success"></i> {{ f.category }}
+                   {% else %}
+                   <i class="bi bi-flag-fill me-1 text-danger"></i> {{ f.category }}
+                   {% endif %}
+                </span>
+              </td>
+              <td data-col="priority">
+                {% if f.category != 'General Feedback' %}
+                <span class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' }} shadow-sm rounded-pill px-3">
+                  {{ f.priority }}
+                </span>
+                {% else %}
+                <span class="text-muted small">N/A</span>
+                {% endif %}
+              </td>
+              <td data-col="score">
+                {% if f.category == 'General Feedback' %}
                 <div class="d-flex align-items-center gap-2">
-                  <div class="score-progress shadow-sm">
-                    <div
-                      class="score-fill {{ 'score-fill-low' if f.avg < 2 else 'score-fill-medium' if f.avg < 4 else 'score-fill-high' }}"
+                  <div class="score-progress shadow-sm hide-sm">
+                    <div class="score-fill {{ 'score-fill-low' if f.avg < 2 else 'score-fill-medium' if f.avg < 4 else 'score-fill-high' }}"
                       style="width: {{ (f.avg / 5) * 100 }}%;"></div>
                   </div>
                   <span class="fw-bold small">{{ f.avg }}</span>
                 </div>
-                <div class="text-muted small" style="font-size: 0.65rem;">Average Satisfaction</div>
+                {% else %}
+                <span class="text-muted small">N/A</span>
+                {% endif %}
               </td>
-              <td style="max-width: 250px;">
-                <div class="text-truncate text-secondary small fst-italic" title="{{ f.description }}">
+              <td class="hide-lg">
+                <div class="text-truncate text-secondary small fst-italic" title="{{ f.description }}" style="max-width: 120px;">
                   "{{ f.description }}"
                 </div>
               </td>
-              <td class="text-muted small font-monospace">
+              <td class="text-muted small hide-md" data-col="date">
                 {{ f.created_at[:10] }}
               </td>
-              <td>
-                {% if f.reveal_status == 'revealed' %}
-                <span class="badge badge-revealed shadow-sm">
-                  <i class="bi bi-unlock-fill me-1"></i>UNMASKED
-                </span>
-                {% else %}
-                <span class="badge badge-encrypted shadow-sm">
-                  <i class="bi bi-lock-fill me-1"></i>ENCRYPTED
-                </span>
-                {% endif %}
-              </td>
               <td class="pe-4 text-end">
-                {% if f.reveal_status == 'revealed' %}
-                <button class="btn btn-sm btn-white border shadow-sm px-3 d-inline-flex align-items-center"
-                  onclick="window.location.href='/authority/reveal/{{ f.id }}?view=true'" style="background: white;">
-                  <i class="bi bi-shield-check text-primary me-2"></i> View ID
-                </button>
-                {% else %}
-                <button
-                  class="btn btn-sm btn-outline-danger shadow-sm px-3 hover-warning d-inline-flex align-items-center"
-                  data-bs-toggle="modal" data-bs-target="#revealModal{{ loop.index }}">
-                  <i class="bi bi-key-fill me-2"></i> Unmask
-                </button>
-                {% endif %}
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                  {% if f.reveal_status == 'revealed' %}
+                  <span class="badge badge-revealed shadow-sm">
+                    <i class="bi bi-unlock-fill me-1"></i>UNMASKED
+                  </span>
+                  <button class="btn btn-sm btn-white border shadow-sm px-2 d-inline-flex align-items-center"
+                    onclick="window.location.href='/authority/reveal/{{ f.id }}?view=true'" style="background: white;">
+                    <i class="bi bi-eye-fill text-primary"></i>
+                  </button>
+                  {% else %}
+                  <span class="badge badge-encrypted shadow-sm hide-sm">
+                    <i class="bi bi-lock-fill me-1"></i>ENCRYPTED
+                  </span>
+                  <button
+                    class="btn btn-sm btn-danger shadow-sm px-3 hover-warning d-inline-flex align-items-center fw-bold"
+                    data-bs-toggle="modal" data-bs-target="#revealModal{{ loop.index }}">
+                    <i class="bi bi-key-fill me-2"></i> Unmask
+                  </button>
+                  {% endif %}
+                </div>
               </td>
             </tr>
             {% endfor %}

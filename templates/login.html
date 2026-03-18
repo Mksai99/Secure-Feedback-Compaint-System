@@ -38,8 +38,11 @@
             <span class="input-group-text bg-transparent border-end-0">
               <i class="bi bi-key text-muted"></i>
             </span>
-            <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="••••••••"
+            <input type="password" name="password" id="passwordInput" class="form-control border-start-0 border-end-0 ps-0" placeholder="••••••••"
               required style="background: transparent;">
+            <span class="input-group-text bg-transparent border-start-0" style="cursor: pointer;" id="togglePasswordBtn" title="Show Password">
+              <i class="bi bi-eye text-muted" id="togglePasswordIcon"></i>
+            </span>
           </div>
         </div>
 
@@ -58,4 +61,28 @@
     </div>
   </div>
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+    const passwordInput = document.getElementById('passwordInput');
+    const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+
+    if (togglePasswordBtn && passwordInput) {
+      togglePasswordBtn.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        if (type === 'text') {
+          togglePasswordIcon.classList.remove('bi-eye');
+          togglePasswordIcon.classList.add('bi-eye-slash');
+          togglePasswordBtn.title = 'Hide Password';
+        } else {
+          togglePasswordIcon.classList.remove('bi-eye-slash');
+          togglePasswordIcon.classList.add('bi-eye');
+          togglePasswordBtn.title = 'Show Password';
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}
