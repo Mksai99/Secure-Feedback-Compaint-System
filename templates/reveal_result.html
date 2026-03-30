@@ -3,24 +3,24 @@
 <div class="d-flex justify-content-center align-items-center fade-in" style="min-height: 70vh;">
     <div class="col-md-8 col-lg-6">
 
-        <div class="glass-panel p-5 text-center border-danger border-2 shadow-lg position-relative overflow-hidden">
+        <div class="glass-panel p-4 p-md-5 text-center border-danger border-2 shadow-lg position-relative overflow-hidden">
             <!-- Alert Tape Effect -->
             <div
-                class="position-absolute top-0 start-0 w-100 bg-danger text-white py-1 small fw-bold text-uppercase letter-spacing-1">
+                class="position-absolute top-0 start-0 w-100 bg-danger text-white py-1 small fw-bold text-uppercase letter-spacing-1" style="font-size: 0.65rem;">
                 Restricted Access • Identity Unmasked
             </div>
 
             <div class="mb-4 mt-3">
                 <div class="d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger p-3 rounded-circle"
-                    style="width: 80px; height: 80px;">
-                    <i class="bi bi-unlock-fill fs-1"></i>
+                    style="width: 70px; height: 70px;">
+                    <i class="bi bi-unlock-fill fs-2"></i>
                 </div>
             </div>
 
-            <h2 class="mb-2 text-dark fw-bold">Identity De-anonymized</h2>
+            <h2 class="mb-2 text-dark fw-bold fs-3">Identity De-anonymized</h2>
             <p class="text-muted mb-4 small">
                 The cryptographic seal for feedback ID <code
-                    class="text-dark bg-secondary-subtle px-2 py-1 rounded ms-1">{{ feedback_id }}</code> has been
+                    class="text-dark bg-secondary-subtle px-2 py-1 rounded ms-1">{{ feedback_id[:12] }}...</code> has been
                 unlocked.
             </p>
 
@@ -30,7 +30,7 @@
                 </div>
                 <div class="card-body bg-light">
                     <h6 class="text-muted text-uppercase small fw-bold mb-2">Verified User Identity</h6>
-                    <h3 class="display-6 fw-bold text-dark font-monospace mb-0">{{ real_identity }}</h3>
+                    <h3 class="fw-bold text-dark font-monospace mb-0 text-break" style="font-size: 1.25rem;">{{ real_identity }}</h3>
                 </div>
                 <div class="card-footer bg-white border-top border-light py-2">
                     <small class="text-muted"><i class="bi bi-check-circle-fill text-success me-1"></i> Integrity

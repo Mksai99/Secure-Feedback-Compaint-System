@@ -3,14 +3,25 @@
 <div class="fade-in">
 
   <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="fw-bold mb-1">Feedback Inbox</h2>
-      <p class="text-muted">Review feedback where you are the cited target.</p>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-center align-items-md-center mb-4 text-center text-md-start">
+    <div class="mb-3 mb-md-0">
+      <h2 class="fw-bold mb-1">Feedback & Complaint Inbox</h2>
+      <p class="text-muted mb-0">Viewing submissions received for {{ session.username or 'Registered User' }}</p>
     </div>
-    <span class="badge bg-white text-secondary border shadow-sm p-2 px-3 rounded-pill">
-      <i class="bi bi-person-badge-fill me-2"></i> {{ session.username }}
-    </span>
+    
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+      <div class="bg-white rounded-pill border px-3 py-2 shadow-sm d-flex align-items-center gap-2">
+        <span class="text-muted small">Avg Rating:</span>
+        <div class="d-flex align-items-center gap-1 text-primary fw-bold">
+          {{ avg_rating }} <i class="bi bi-star-fill small"></i>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-pill border px-3 py-2 shadow-sm d-flex align-items-center gap-2">
+        <span class="text-muted small">Total Count:</span>
+        <span class="badge bg-primary-subtle text-primary rounded-pill">{{ feedback_list|length }}</span>
+      </div>
+    </div>
   </div>
 
   <div
@@ -25,26 +36,54 @@
 
   <div class="card-custom p-0 overflow-hidden shadow-sm">
     <div class="p-4 border-bottom bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
-      <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-inbox-fill text-primary me-2"></i>Feedback Records</h5>
+      <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-inbox-fill text-primary me-2"></i>Submission Records</h5>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="filter-bar border-top-0 border-start-0 border-end-0 rounded-0 px-4 py-3 mb-0">
+      <div class="filter-input-group">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="tableSearch" class="form-control border-start-0"
+            placeholder="Search by category or description...">
+        </div>
+      </div>
+      <div class="filter-select">
+        <select id="typeFilter" class="form-select form-select-sm">
+          <option value="all">All Types</option>
+          <option value="feedback">Feedback Only</option>
+          <option value="complaint">Complaint Only</option>
+        </select>
+      </div>
+      <div class="filter-select">
+        <select id="ratingFilter" class="form-select form-select-sm">
+          <option value="all">Any Rating</option>
+          <option value="5">5 Stars</option>
+          <option value="4">4 Stars</option>
+          <option value="3">3 Stars</option>
+          <option value="2">2 Stars</option>
+          <option value="1">1 Star</option>
+        </select>
+      </div>
     </div>
 
     {% if feedback_list %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+    <div class="table-responsive table-mobile-responsive">
+      <table class="table table-hover feedback-table align-middle mb-0">
         <thead class="bg-light text-muted text-uppercase small">
           <tr style="font-size: 0.75rem; letter-spacing: 0.05em;">
             <th class="ps-4 col-type">Type</th>
             <th class="col-category">Category</th>
             <th class="col-priority">Priority</th>
-            <th class="col-score text-center">Score</th>
+            <th class="col-score text-center sort-header" data-sort="score">Score</th>
             <th>Description</th>
-            <th class="text-end pe-4 col-date">Date</th>
+            <th class="text-end pe-4 col-date sort-header" data-sort="date">Date</th>
           </tr>
         </thead>
         <tbody>
           {% for f in feedback_list %}
-          <tr>
-            <td class="ps-4">
+          <tr data-type="{{ 'feedback' if f.category == 'General Feedback' else 'complaint' }}">
+            <td class="ps-4" data-label="Type">
               {% if f.category == 'General Feedback' %}
               <span class="badge bg-success text-white badge-fixed-width">
                 <i class="bi bi-chat-heart-fill"></i> FEEDBACK
@@ -55,7 +94,7 @@
               </span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Category">
               <span class="fw-bold text-dark d-block">
                 {% if f.category == 'General Feedback' %}
                 <i class="bi bi-tag-fill me-1 text-success small"></i> {{ f.category }}
@@ -64,7 +103,7 @@
                 {% endif %}
               </span>
             </td>
-            <td>
+            <td data-label="Priority">
               {% if f.category != 'General Feedback' %}
               <span
                 class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' }} rounded-pill px-3">
@@ -74,7 +113,7 @@
               <span class="text-muted small">N/A</span>
               {% endif %}
             </td>
-            <td class="text-center">
+            <td class="text-center" data-col="score" data-label="Score">
               {% if f.category == 'General Feedback' %}
               <div class="d-flex align-items-center justify-content-center gap-1">
                 <span class="fw-bold {{ 'text-success' if f.avg >= 4 else 'text-warning' if f.avg >= 3 else 'text-danger' }}">
@@ -86,13 +125,14 @@
               <span class="text-muted small">N/A</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Description">
               <div
-                class="p-2 bg-light rounded-3 text-secondary border-start border-3 {{ 'border-success' if f.category == 'General Feedback' else 'border-danger' }}">
-                <small class="fst-italic">"{{ f.description }}"</small>
+                class="p-3 bg-light rounded-3 text-secondary border-start border-4 {{ 'border-success' if f.category == 'General Feedback' else 'border-danger' }}">
+                <div class="fw-medium text-dark mb-1 small text-uppercase" style="font-size: 0.65rem;">Submission:</div>
+                <div class="fst-italic" style="white-space: pre-wrap; line-height: 1.5;">"{{ f.description }}"</div>
               </div>
             </td>
-            <td class="text-end pe-4 text-muted small col-date">
+            <td class="text-end pe-4 text-muted small col-date" data-col="date" data-label="Date">
               {{ f.created_at[:10] }}
             </td>
           </tr>
@@ -103,7 +143,7 @@
     {% else %}
     <div class="p-5 text-center text-muted">
       <i class="bi bi-inbox display-4 mb-3 d-block opacity-25"></i>
-      No feedback has been received for your profile yet.
+      No feedback or complaints have been received for your profile yet.
     </div>
     {% endif %}
   </div>

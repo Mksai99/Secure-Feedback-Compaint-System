@@ -3,12 +3,12 @@
 <div class="fade-in">
 
   <!-- Header & Status -->
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-    <div>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-center align-items-md-center mb-4 text-center text-md-start">
+    <div class="mb-3 mb-md-0">
       <h2 class="fw-bold mb-1">Admin Dashboard</h2>
-      <p class="text-muted">System Overview & Management</p>
+      <p class="text-muted mb-0">System Overview & Management</p>
     </div>
-    <div class="d-flex align-items-center gap-3">
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-md-3">
       <div class="d-flex align-items-center px-3 py-2 bg-white rounded-pill border shadow-sm">
         <span class="text-muted small me-2">Blockchain:</span>
         {% if chain_valid %}
@@ -114,7 +114,7 @@
         <div class="p-0">
           <div class="row g-0">
             <!-- Targets Column -->
-            <div class="col-md-6 border-end bg-white">
+            <div class="col-md-6 border-end border-md-end-none border-sm-bottom bg-white">
               <div class="p-3 border-bottom bg-light bg-opacity-25">
                 <h6 class="fw-bold text-primary mb-0 small text-uppercase">Active Targets</h6>
               </div>
@@ -124,14 +124,14 @@
                     {% for t in target_list %}
                     <tr>
                       <td class="ps-3 align-middle border-0 py-2">
-                        <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
                           <span><i class="bi bi-person-badge text-primary me-2"></i>{{ t.username }}</span>
                           {% if t.is_verified %}
                           <span class="badge bg-success-subtle text-success border-0 small"
-                            style="font-size: 0.7rem;">Verified</span>
+                            style="font-size: 0.65rem;">Verified</span>
                           {% else %}
                           <span class="badge bg-warning-subtle text-warning border-0 small"
-                            style="font-size: 0.7rem;">Verification Pending</span>
+                            style="font-size: 0.65rem;">Pending</span>
                           {% endif %}
                         </div>
                       </td>
@@ -164,14 +164,14 @@
                     {% for u in user_list %}
                     <tr>
                       <td class="ps-3 align-middle border-0 py-2">
-                        <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
                           <span><i class="bi bi-person text-info me-2"></i>{{ u.username }}</span>
                           {% if u.is_verified %}
                           <span class="badge bg-success-subtle text-success border-0 small"
-                            style="font-size: 0.7rem;">Verified</span>
+                            style="font-size: 0.65rem;">Verified</span>
                           {% else %}
                           <span class="badge bg-warning-subtle text-warning border-0 small"
-                            style="font-size: 0.7rem;">Verification Pending</span>
+                            style="font-size: 0.65rem;">Pending</span>
                           {% endif %}
                         </div>
                       </td>
@@ -236,8 +236,8 @@
 
         {% if feedback_list %}
 
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
+        <div class="table-responsive table-mobile-responsive" style="max-height: 600px; overflow-y: auto;">
+          <table class="table table-hover feedback-table align-middle mb-0">
             <thead>
               <tr class="text-uppercase small fw-bold text-muted" style="font-size: 0.7rem; letter-spacing: 0.05em;">
                 <th class="ps-4 sort-header" data-sort="target">Target</th>
@@ -252,9 +252,9 @@
             </thead>
             <tbody>
               {% for f in feedback_list %}
-              <tr>
-                <td class="ps-4 fw-bold text-primary" data-col="target">{{ f.target_name }}</td>
-                <td>
+              <tr data-type="{{ 'feedback' if f.category == 'General Feedback' else 'complaint' }}">
+              <td class="ps-4 fw-bold text-primary" data-col="target" data-label="Target">{{ f.target_name }}</td>
+                <td data-label="Type">
                   {% if f.category == 'General Feedback' %}
                   <span class="badge bg-success text-white badge-fixed-width">
                     <i class="bi bi-chat-heart-fill"></i> FEEDBACK
@@ -265,7 +265,7 @@
                   </span>
                   {% endif %}
                 </td>
-                <td>
+                <td data-label="Category">
                    <span class="fw-bold text-dark small">
                     {% if f.category == 'General Feedback' %}
                     <i class="bi bi-tag-fill me-1 text-success"></i> {{ f.category }}
@@ -274,7 +274,7 @@
                     {% endif %}
                    </span>
                 </td>
-                <td data-col="priority">
+                <td data-col="priority" data-label="Priority">
                   {% if f.category != 'General Feedback' %}
                   <span
                     class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' }} rounded-pill px-3">
@@ -284,7 +284,7 @@
                   <span class="text-muted small">N/A</span>
                   {% endif %}
                 </td>
-                <td data-col="score">
+                <td data-col="score" data-label="Score">
                   {% if f.category == 'General Feedback' %}
                   <div class="d-flex align-items-center gap-1">
                     <span class="fw-bold {{ 'text-success' if f.avg >= 4 else 'text-warning' if f.avg >= 3 else 'text-danger' }}">
@@ -296,12 +296,12 @@
                   <span class="text-muted small">N/A</span>
                   {% endif %}
                 </td>
-                <td class="hide-md">
-                  <div class="text-truncate text-secondary small" style="max-width: 150px; font-style: italic;" title="{{ f.description }}">
+                <td class="hide-md" data-label="Snippet">
+                  <div class="text-secondary small" style="font-style: italic;">
                     "{{ f.description }}"
                   </div>
                 </td>
-                <td class="text-muted small col-date" data-col="date">
+                <td class="text-muted small col-date" data-col="date" data-label="Date">
                   {{ f.created_at[:10] }}
                   <div class="text-secondary-subtle" style="font-size: 0.75rem;">{{ f.created_at[11:16] }}</div>
                 </td>

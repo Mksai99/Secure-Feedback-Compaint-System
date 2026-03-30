@@ -1,11 +1,10 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import hashlib
-from cryptography.fernet import Fernet
 import os
 from web3 import Web3
 from dotenv import load_dotenv
@@ -15,6 +14,8 @@ import time
 from flask_mail import Mail, Message
 import secrets
 import requests
+from cryptography.fernet import Fernet, InvalidToken
+import web3.exceptions
 
 # Configure Logging
 logging.basicConfig(filename='app_error.log', level=logging.DEBUG, 
@@ -42,7 +43,6 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 mail = Mail(app)
 
 BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:5000')
-
 
 # secret salt for user anonymity (stored on-chain)
 USER_SALT = os.getenv("USER_SALT", "some_fixed_random_salt")
@@ -96,12 +96,19 @@ def encrypt_data(data: str) -> str:
     return token.decode("utf-8")
 
 def decrypt_data(token: str) -> str:
-    """Decrypts a string token and returns original string."""
+    """Decrypts a string token and returns original string. Handles decryption failures gracefully."""
     if not token:
         return ""
-    # Fernet decrypt expects bytes
-    data_bytes = cipher_suite.decrypt(token.encode("utf-8"))
-    return data_bytes.decode("utf-8")
+    try:
+        # Fernet decrypt expects bytes
+        data_bytes = cipher_suite.decrypt(token.encode("utf-8"))
+        return data_bytes.decode("utf-8")
+    except InvalidToken:
+        logging.error(f"Decryption failed: Invalid or corrupted token. {token[:20]}...")
+        return "[DECRYPTION FAILED: Invalid Token]"
+    except Exception as e:
+        logging.error(f"Unexpected decryption error: {str(e)}")
+        return f"[DECRYPTION ERROR: {str(e)}]"
 
 
 # ---------- Helpers ----------
@@ -119,59 +126,75 @@ def create_block(feedback_id: ObjectId, feedback_data: dict, encrypted_user: str
                  rating1: int = 0, rating2: int = 0, rating3: int = 0, rating4: int = 0, average_rating: float = 0.0):
     """
     Records ALL feedback data on-chain — blockchain is the single source of truth.
-    Ratings are stored as uint8 (0-5), averageRating as uint256 * 100 (e.g. 4.25 → 425).
+    Includes a retry mechanism for transient network or gas issues.
     """
     print(f"DEBUG: create_block called for fb_id: {feedback_id}")
     if not contract or not ACCOUNT_ADDRESS or not PRIVATE_KEY:
-        print(f"DEBUG: Blockchain config missing - Contract: {bool(contract)}, Account: {ACCOUNT_ADDRESS}, Key: {'SET' if PRIVATE_KEY else 'MISSING'}")
-        return
-
-    try:
-        data_json = json.dumps(feedback_data, sort_keys=True)
-        data_hash = sha256(data_json)
-        fb_id_str = str(feedback_id)
-        # Convert average_rating to integer * 100 for on-chain storage
-        avg_rating_int = int(round(average_rating * 100))
-
-        print(f"DEBUG: Preparing transaction for {fb_id_str} with ratings {rating1},{rating2},{rating3},{rating4} avg={avg_rating_int}...")
-        nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
-        # Call recordFeedback with all fields — blockchain is the authoritative store
-        txn = contract.functions.recordFeedback((
-            fb_id_str,
-            data_hash,
-            encrypted_user,
-            encrypted_desc,
-            target_name,
-            category,
-            priority,
-            organization_id,
-            rating1,
-            rating2,
-            rating3,
-            rating4,
-            avg_rating_int
-        )).build_transaction({
-            "chainId": int(os.getenv("CHAIN_ID", 1337)),
-            "from": ACCOUNT_ADDRESS,
-            "nonce": nonce,
-            "gasPrice": w3.eth.gas_price
-        })
-
-        print(f"DEBUG: Signing transaction...")
-        signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
-        print(f"DEBUG: Sending transaction...")
-        tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        print(f"DEBUG: Waiting for receipt...")
-        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        # No MongoDB mirroring - Blockchain is the only store
-        print(f"SUCCESS: Feedback {fb_id_str} recorded on-chain with ratings. TX: {tx_receipt.transactionHash.hex()}")
-        return True
-    except Exception as e:
-        error_msg = f"CRITICAL BLOCKCHAIN ERROR in create_block for {feedback_id}: {e}"
-        print(error_msg)
-        logging.error(error_msg, exc_info=True)
+        logging.error(f"Blockchain config missing in create_block for {feedback_id}")
         return False
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            data_json = json.dumps(feedback_data, sort_keys=True)
+            data_hash = sha256(data_json)
+            fb_id_str = str(feedback_id)
+            avg_rating_int = int(round(average_rating * 100))
+
+            print(f"DEBUG: [Attempt {attempt+1}/{max_retries}] Preparing txn for {fb_id_str}...")
+            
+            # Fetch latest nonce and gas price for each attempt to avoid stale data
+            nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
+            
+            txn = contract.functions.recordFeedback((
+                fb_id_str,
+                data_hash,
+                encrypted_user,
+                encrypted_desc,
+                target_name,
+                category,
+                priority,
+                organization_id,
+                rating1,
+                rating2,
+                rating3,
+                rating4,
+                avg_rating_int
+            )).build_transaction({
+                "chainId": int(os.getenv("CHAIN_ID", 1337)),
+                "from": ACCOUNT_ADDRESS,
+                "nonce": nonce,
+                "gasPrice": w3.eth.gas_price
+            })
+
+            signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
+            tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            
+            print(f"DEBUG: Waiting for receipt for {fb_id_str}...")
+            tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+            print(f"SUCCESS: Feedback {fb_id_str} recorded. TX: {tx_receipt.transactionHash.hex()}")
+            return True
+
+        except (web3.exceptions.TimeExhausted, web3.exceptions.TransactionNotFound) as e:
+            logging.warning(f"Blockchain timeout on attempt {attempt+1} for {feedback_id}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2)  # Wait before retrying
+                continue
+        except ValueError as e:
+            # Often handles RPC errors like "nonce too low" or "already known"
+            error_str = str(e)
+            if "nonce too low" in error_str.lower() or "already known" in error_str.lower():
+                logging.warning(f"Nonce error on attempt {attempt+1}, retrying... {e}")
+                time.sleep(1)
+                continue
+            logging.error(f"Contract execution error for {feedback_id}: {e}")
+            break
+        except Exception as e:
+            logging.error(f"CRITICAL BLOCKCHAIN ERROR in create_block for {feedback_id}: {e}", exc_info=True)
+            break
+
+    return False
 
 
 
@@ -194,12 +217,10 @@ def current_user():
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": f"Bearer {access_token}"
         }
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         
         if response.status_code == 200:
             user_data = response.json()
-            # Extract role and username mapped during creation
-            app_meta = user_data.get("app_metadata", {})
             user_meta = user_data.get("user_metadata", {})
             
             role = user_meta.get("role", "user")
@@ -210,10 +231,21 @@ def current_user():
                 "username": username,
                 "role": role
             }
+        elif response.status_code == 401:
+            logging.warning("Supabase token expired or invalid.")
+            return None
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Supabase API connection error: {str(e)}")
+        return None
     except Exception as e:
-        print(f"Session validation failed: {str(e)}")
+        logging.error(f"Unexpected session validation error: {str(e)}")
         return None
     return None
+
+@app.context_processor
+def inject_user():
+    """Provides current_user details to all templates."""
+    return dict(current_user=current_user())
 
 def login_required(role=None):
     """Decorator to enforce Supabase Auth session validation and role checks."""
@@ -221,14 +253,16 @@ def login_required(role=None):
         def wrapper(*args, **kwargs):
             user = current_user()
             if not user:
+                flash("Your session has expired or is invalid. Please log in again.", "warning")
                 return redirect(url_for("login"))
             
-            # Pass the user data to the session so templates can render username/roles effortlessly
+            # Carry user context into the Flask session for templates
             session["username"] = user["username"]
             session["role"] = user["role"]
 
             if role and user["role"] != role:
-                return "Unauthorized Access", 403
+                flash(f"Unauthorized: This area requires the {role} role.", "danger")
+                return redirect(url_for("home"))
             
             return fn(*args, **kwargs)
         wrapper.__name__ = fn.__name__
@@ -240,10 +274,102 @@ def login_required(role=None):
 
 @app.route("/")
 def home():
+    # Base stats for avoiding template errors
+    stats = {
+        "total_submissions": 0,
+        "avg_rating": 0.0,
+        "total_users": 0,
+        "total_targets": 0,
+        "my_submissions": 0,
+        "total_audit_logs": 0,
+        "my_received": 0,
+        "recent_items": []
+    }
+    
+    user = current_user()
+    if not user:
+        if 'username' in session:
+            session.clear()
+        return render_template(
+            "home.html",
+            title="Secure Anonymous Feedback and Complaint System",
+            heading="Secure Anonymous Feedback and Complaint System",
+            stats=stats
+        )
+    
+    if contract:
+        try:
+            # 1. Platform-wide stats (Blockchain)
+            all_ids = contract.functions.getAllFeedbackIds().call()
+            stats["total_submissions"] = len(all_ids)
+            
+            # 2. Role-specific Filtering & Recent Activity
+            if user["role"] == "target":
+                target_count = 0
+                total_avg = 0.0
+                recent = []
+                for fid in all_ids:
+                    core = contract.functions.getFeedbackCore(fid).call()
+                    if core[3] == user["username"]: # targetName
+                        target_count += 1
+                        meta = contract.functions.getFeedbackMeta(fid).call()
+                        total_avg += (meta[4] / 100.0)
+                        recent.append({
+                            "id": fid,
+                            "category": core[4],
+                            "priority": core[5],
+                            "created_at": datetime.fromtimestamp(meta[6]).strftime('%Y-%m-%d') if meta[6] > 0 else "Unknown",
+                            "avg": round(meta[4] / 100.0, 2)
+                        })
+                stats["my_received"] = target_count
+                stats["avg_rating"] = round(total_avg / target_count, 2) if target_count > 0 else 0.0
+                stats["recent_items"] = sorted(recent, key=lambda x: x["created_at"], reverse=True)[:3]
+                
+            elif user["role"] == "user":
+                stats["my_submissions"] = stats["total_submissions"]
+            
+            elif user["role"] == "admin" or user["role"] == "authority":
+                audit_count = 0
+                recent_admin = []
+                for fid in all_ids:
+                    core = contract.functions.getFeedbackCore(fid).call()
+                    meta = contract.functions.getFeedbackMeta(fid).call()
+                    logs = contract.functions.getAuditLogs(fid).call()
+                    audit_count += len(logs)
+                    
+                    if user["role"] == "admin":
+                        recent_admin.append({
+                            "id": fid,
+                            "target": core[3],
+                            "type": core[4],
+                            "created_at": datetime.fromtimestamp(meta[6]).strftime('%Y-%m-%d') if meta[6] > 0 else "Unknown"
+                        })
+                
+                stats["total_audit_logs"] = audit_count
+                if user["role"] == "admin":
+                    stats["recent_items"] = sorted(recent_admin, key=lambda x: x["created_at"], reverse=True)[:5]
+
+        except Exception as e:
+            logging.error(f"Error fetching dashboard stats: {e}")
+
+    # 3. Supabase Stats (Admin Only)
+    if user["role"] == "admin" and SUPABASE_URL:
+        try:
+            url = f"{SUPABASE_URL}/auth/v1/admin/users"
+            headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+            resp = requests.get(url, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json().get("users", [])
+                stats["total_users"] = len(data)
+                stats["total_targets"] = len([u for u in data if u.get("user_metadata", {}).get("role") == "target"])
+        except Exception:
+            pass
+
     return render_template(
         "home.html",
-        title="Secure Anonymous Feedback Platform",
-        heading="Privacy-Preserving Feedback System",
+        title="Secure Anonymous Feedback and Complaint System",
+        heading="Privacy-Preserving Feedback and Complaint System",
+        stats=stats
     )
 
 
@@ -395,6 +521,95 @@ def update_password():
         flash("Connection error while setting password.", "danger")
         return redirect(url_for("update_password"))
 
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    """Handles the final step of recovery: setting a new password via a secure token."""
+    if request.method == "GET":
+        return render_template("reset_password.html", title="Reset Password")
+        
+    new_password = request.form.get("password")
+    access_token = request.form.get("access_token")
+    
+    if not new_password or not access_token:
+        flash("Missing password or invalid reset token.", "danger")
+        return redirect(url_for("reset_password"))
+        
+    try:
+        url = f"{SUPABASE_URL}/auth/v1/user"
+        headers = {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        data = {"password": new_password}
+        response = requests.put(url, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            flash("Your password has been reset successfully! Please log in.", "success")
+            return redirect(url_for("login"))
+        else:
+            flash(f"Error resetting password: {response.json().get('error_description', 'Invalid or expired recovery link')}", "danger")
+            return redirect(url_for("reset_password"))
+            
+    except Exception as e:
+        flash("Connection error while resetting password.", "danger")
+        return redirect(url_for("reset_password"))
+
+@app.route("/forgot-password", methods=["GET", "POST"], strict_slashes=False)
+def forgot_password():
+    """Renders the recovery form and triggers the Supabase reset ONLY if the email is verified."""
+    if request.method == "GET":
+        return render_template("forgot_password.html", title="Recover Account")
+    
+    email = request.form.get("email")
+    if not email:
+        flash("Email is required.", "danger")
+        return redirect(url_for("forgot_password"))
+    
+    try:
+        # 1. STRICT VERIFICATION: Check if user exists in Supabase Auth
+        admin_url = f"{SUPABASE_URL}/auth/v1/admin/users"
+        admin_headers = {
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+        }
+        # Searching by email
+        search_response = requests.get(admin_url, headers=admin_headers)
+        user_exists = False
+        
+        if search_response.status_code == 200:
+            all_users = search_response.json().get("users", [])
+            for u in all_users:
+                if u.get("email") == email:
+                    user_exists = True
+                    break
+        
+        if not user_exists:
+            flash("Authentication Failure: The email address is not registered in our secure system.", "danger")
+            return redirect(url_for("forgot_password"))
+
+        # 2. TRIGGER RECOVERY: Only if verified
+        recover_url = f"{SUPABASE_URL}/auth/v1/recover"
+        recover_headers = {
+            "apikey": SUPABASE_ANON_KEY,
+            "Content-Type": "application/json"
+        }
+        data = {"email": email}
+        response = requests.post(recover_url, headers=recover_headers, json=data)
+        
+        if response.status_code == 200:
+            flash("Verification successful. Check your email for a secure reset link.", "success")
+            return redirect(url_for("forgot_password"))
+        else:
+            error_msg = response.json().get("msg", "Failed to send recovery email.")
+            flash(f"Error: {error_msg}", "danger")
+            return redirect(url_for("forgot_password"))
+            
+    except Exception as e:
+        logging.error(f"Forgot Password Error: {e}")
+        flash("System error while verifying account.", "danger")
+        return redirect(url_for("forgot_password"))
+
 @app.route("/jwt-status")
 @login_required()
 def jwt_status():
@@ -443,7 +658,7 @@ def user_submit_feedback():
 
         print(f"DEBUG: {submission_type.upper()} submission received for {target_name}. Category: {category}")
 
-        created_at = datetime.utcnow().isoformat()
+        created_at = datetime.now(timezone.utc).isoformat()
         avg_rating = round((rating_1 + rating_2 + rating_3 + rating_4) / 4.0, 2) if submission_type == "feedback" else 0.0
 
         user_username = session["username"]
@@ -524,7 +739,7 @@ def user_submit_feedback():
     return render_template(
         "submit_feedback.html",
         target_list=target_list,
-        title="Submit Anonymous Feedback",
+        title="Submit Anonymous Feedback and Complaints",
         heading="User Panel",
     )
 
@@ -557,10 +772,8 @@ def target_view_feedback():
             if core[3] != target_username:
                 continue
 
-            try:
-                dec_desc = decrypt_data(core[2])
-            except Exception:
-                dec_desc = "[DECRYPTION FAILED]"
+            # decrypt_data now handles its own internal exceptions and returns a safe string
+            dec_desc = decrypt_data(core[2])
 
             avg = meta[4] / 100.0 if meta[4] else 0.0
             created_at = datetime.fromtimestamp(meta[6]).isoformat() if meta[6] > 0 else "Unknown"
@@ -584,7 +797,7 @@ def target_view_feedback():
     return render_template(
         "view_feedback.html",
         feedback_list=feedback_list,
-        title="Received Feedback",
+        title="Received Feedback and Complaints",
         heading="Target Panel",
     )
 
@@ -648,10 +861,8 @@ def admin_dashboard():
             if not meta[7]:  # exists
                 continue
 
-            try:
-                dec_desc = decrypt_data(core[2])
-            except Exception:
-                dec_desc = "[DECRYPTION FAILED]"
+            # decrypt_data handles internal exceptions and returns an indicator on failure
+            dec_desc = decrypt_data(core[2])
 
             avg = meta[4] / 100.0 if meta[4] else 0.0
             created_at = datetime.fromtimestamp(meta[6]).isoformat() if meta[6] > 0 else "Unknown"
@@ -696,8 +907,9 @@ def admin_add_target():
     email = request.form.get("email")
     if username and email:
         try:
-            # Force the redirect back to the Flask app instead of the default port 3000
-            url = f"{SUPABASE_URL}/auth/v1/invite?redirect_to=http://127.0.0.1:5000/update-password"
+            # Dynamically use BASE_URL for redirects (ideal for ngrok/local testing)
+            redirect_url = f"{BASE_URL}/update-password"
+            url = f"{SUPABASE_URL}/auth/v1/invite?redirect_to={redirect_url}"
             headers = {
                 "apikey": SUPABASE_SERVICE_ROLE_KEY,
                 "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
@@ -728,7 +940,8 @@ def admin_add_user():
     email = request.form.get("email")
     if username and email:
         try:
-            url = f"{SUPABASE_URL}/auth/v1/invite?redirect_to=http://127.0.0.1:5000/update-password"
+            redirect_url = f"{BASE_URL}/update-password"
+            url = f"{SUPABASE_URL}/auth/v1/invite?redirect_to={redirect_url}"
             headers = {
                 "apikey": SUPABASE_SERVICE_ROLE_KEY,
                 "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
@@ -816,10 +1029,8 @@ def authority_dashboard():
             if not meta[7]:  # exists
                 continue
 
-            try:
-                dec_desc = decrypt_data(core[2])
-            except Exception:
-                dec_desc = "[DECRYPTION FAILED]"
+            # decrypt_data now handles its own internal exceptions
+            dec_desc = decrypt_data(core[2])
 
             avg = meta[4] / 100.0 if meta[4] else 0.0
             created_at = datetime.fromtimestamp(meta[6]).isoformat() if meta[6] > 0 else "Unknown"
@@ -874,13 +1085,14 @@ def authority_reveal(fb_id):
         encrypted_id = core[1]  # encryptedUser
         print(f"DEBUG: Fetched encryptedUser from Blockchain for {fb_id}")
 
-        try:
-            real_identity = decrypt_data(encrypted_id)
-        except Exception as e:
-            real_identity = f"Decryption Failed: {str(e)}"
+        # Decrypt identity securely
+        real_identity = decrypt_data(encrypted_id)
+    except web3.exceptions.Web3Exception as e:
+        logging.error(f"Blockchain Fetch Error during Reveal for {fb_id}: {e}")
+        return f"Blockchain communication error: {str(e)}", 503
     except Exception as e:
-        print(f"Blockchain Fetch Error during Reveal: {e}")
-        return f"Blockchain error during reveal: {str(e)}", 500
+        logging.error(f"Unexpected Error during Reveal: {e}")
+        return f"System error during reveal: {str(e)}", 500
 
     # ── 2. Structural logic for unmasking (POST only) ──
     if request.method == "POST":

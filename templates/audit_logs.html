@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="fade-in">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-1 text-primary">Cryptographic Audit Ledger</h2>
-            <p class="text-muted small mb-0">Immutable record of all identity de-anonymization events.</p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
+        <div class="mb-3 mb-md-0 text-center text-md-start">
+            <h2 class="fw-bold mb-1 text-primary">System Audit Trail</h2>
+            <p class="text-muted small mb-0">Transparent ledger of all feedback and complaint investigations.</p>
         </div>
-        <a href="/authority" class="btn btn-outline-secondary shadow-sm">
-            <i class="bi bi-arrow-left me-2"></i> Authority Dashboard
-        </a>
+        <div class="header-actions">
+            <a href="/authority" class="btn btn-outline-secondary shadow-sm">
+                <i class="bi bi-arrow-left me-2"></i> Dashboard
+            </a>
+        </div>
     </div>
 
     <div class="card-custom p-0 overflow-hidden shadow-sm border-0">
@@ -22,7 +24,7 @@
         </div>
 
         {% if logs %}
-        <div class="table-responsive">
+        <div class="table-responsive table-mobile-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 0.95rem;">
                 <thead class="bg-light text-uppercase small text-muted"
                     style="letter-spacing: 0.05em; font-size: 0.75rem;">
@@ -36,29 +38,30 @@
                 </thead>
                 <tbody>
                     {% for log in logs %}
-                        <td class="ps-4 col-date font-monospace text-muted small" style="line-height:1.2;">
+                    <tr>
+                        <td class="ps-4 col-date font-monospace text-muted small" style="line-height:1.2;" data-label="Timestamp">
                             {{ log.timestamp.split('.')[0].replace('T', ' ') }}
                         </td>
-                        <td>
+                        <td data-label="Auditor">
                             <div class="d-flex align-items-center gap-2">
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                                     style="width: 28px; height: 28px;">
                                     <i class="bi bi-person-fill small"></i>
                                 </div>
                                 <span class="fw-bold text-dark">{{ log.performed_by }}</span>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Action">
                             <span class="badge badge-revealed badge-fixed-width" style="font-size: 0.65rem;">
                                 <i class="bi bi-unlock-fill"></i> {{ log.action }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Reference">
                             <code class="text-secondary bg-light px-2 py-1 rounded small border">{{ log.feedback_id[:8] }}</code>
                         </td>
-                        <td>
+                        <td class="pe-4" data-label="Justification">
                             <div
-                                class="bg-light p-2 rounded-3 small border-start border-primary border-3 text-secondary">
+                                class="bg-light p-2 rounded-3 small border-start border-primary border-3 text-secondary text-wrap">
                                 "{{ log.reason }}"
                             </div>
                         </td>

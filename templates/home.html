@@ -1,12 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
+<!-- Smart Token Dispatcher: Routes Supabase Auth emails to the correct dedicated pages -->
+<script>
+  (function () {
+    const hashParams = new URL(window.location.href.replace('#', '?')).searchParams;
+    const type = hashParams.get("type");
+    const accessToken = hashParams.get("access_token");
+
+    if (accessToken) {
+      if (type === "recovery") {
+        window.location.href = "/reset-password" + window.location.hash;
+      } else if (type === "invite") {
+        window.location.href = "/update-password" + window.location.hash;
+      }
+    }
+  })();
+</script>
+
 <div class="fade-in">
 
   {% if session.username %}
   <!-- DASHBOARD OVERVIEW (Logged In) -->
   <div class="row mb-5">
     <div class="col-12">
-      <div class="p-5 rounded-4 bg-primary text-white position-relative overflow-hidden shadow-xl"
+      <div class="p-4 p-md-5 rounded-4 bg-primary text-white position-relative overflow-hidden shadow-xl"
         style="background: var(--primary-gradient) !important;">
         <div class="position-relative z-1">
           <div class="d-flex align-items-center gap-3 mb-3">
@@ -14,17 +31,18 @@
               <i class="bi bi-person-badge fs-3"></i>
             </div>
             <div>
-              <h1 class="fw-bold mb-0">Welcome back, {{ session.username }}</h1>
+              <h1 class="fw-bold mb-0 fs-3 fs-md-2">Welcome back, {{ session.username }}</h1>
               <span class="badge bg-white text-primary text-uppercase small ls-wide" style="font-size: 0.7rem;">{{
                 session.role|replace("authority", "Authority")|capitalize }} Access</span>
             </div>
           </div>
-          <p class="lead opacity-75 mb-4">Secure Anonymous Feedback Platform • Control Center</p>
+          <p class="lead opacity-75 mb-4 small-on-mobile">Secure Anonymous Feedback and Complaint System • Control
+            Center</p>
 
-          <div class="d-flex flex-wrap gap-2">
+          <div class="d-flex flex-wrap gap-2 mt-4">
             {% if session.role == 'user' %}
             <a href="/user/provide-feedback" class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm">
-              <i class="bi bi-pencil-square me-2"></i> Submit New Feedback
+              <i class="bi bi-pencil-square me-2"></i> Submit Feedback & Complaints
             </a>
             {% elif session.role == 'target' %}
             <a href="/target/view-feedback" class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm">
@@ -39,7 +57,7 @@
               <i class="bi bi-gear me-2"></i> Admin Control Center
             </a>
             {% endif %}
-            <button class="btn btn-outline-light px-4 py-2 rounded-pill"
+            <button class="btn btn-outline-light px-4 py-2 rounded-pill bg-white bg-opacity-10 border-0"
               onclick="showToast('Security check passed: Blockchain synchronized.', 'success')">
               <i class="bi bi-shield-lock me-1"></i> Sync Status
             </button>
@@ -54,35 +72,226 @@
     </div>
   </div>
 
-  <div class="row g-4">
+  <div class="row g-4 mb-5">
+    <!-- Role specific Stats Cards -->
+    {% if session.role == 'target' %}
     <div class="col-md-4">
-      <div class="card-custom h-100 p-4 border-0 shadow-soft glass-panel">
+      <div class="card-custom mb-4 p-4 border-0 shadow-soft glass-panel">
         <div class="d-flex align-items-center gap-3 mb-3">
           <div class="bg-primary-light text-primary p-3 rounded-4">
-            <i class="bi bi-shield-lock-fill fs-4"></i>
+            <i class="bi bi-inbox-fill fs-4"></i>
           </div>
-          <h5 class="fw-bold mb-0">Security Status</h5>
+          <h5 class="fw-bold mb-0">Total Received</h5>
         </div>
-        <p class="text-muted small">System integrity is verified by private blockchain technology. All data is
-          immutable.</p>
-        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-          <span class="badge bg-success-subtle text-success rounded-pill px-3">
-            <i class="bi bi-check-circle-fill me-1"></i> Active
+        <h2 class="fw-bold text-dark">{{ stats.my_received or 0 }}</h2>
+        <p class="text-muted small">Submissions addressed to you across the platform.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom mb-4 p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-accent-light text-accent p-3 rounded-4">
+            <i class="bi bi-star-fill fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Overall Rating</h5>
+        </div>
+        <h2 class="fw-bold text-dark">{{ stats.avg_rating or 0.0 }} / 5.0</h2>
+        <p class="text-muted small">Average score from all received feedback indicators.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom mb-4 p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-secondary-light text-secondary p-3 rounded-4">
+            <i class="bi bi-shield-check fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">System Health</h5>
+        </div>
+        <div class="mt-auto pt-1">
+          <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2">
+            <i class="bi bi-check-circle-fill me-1"></i> Blockchain Active
           </span>
-          <span class="text-muted extra-small">256-bit AES</span>
+          <p class="text-muted extra-small mt-2">All data is immutable and synchronized.</p>
         </div>
       </div>
     </div>
 
+    <!-- Recent Activity Table for Target -->
+    <div class="col-12 mt-4">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>Recent Submissions</h5>
+          <a href="/target/view-feedback" class="btn btn-sm btn-outline-primary px-3 rounded-pill">View All</a>
+        </div>
+        {% if stats.recent_items %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light small text-muted">
+              <tr>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Rating</th>
+                <th class="text-end">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in stats.recent_items %}
+              <tr>
+                <td><span class="fw-bold">{{ item.category }}</span></td>
+                <td><span class="badge rounded-pill bg-{{ 'danger' if item.priority == 'High' else 'primary' }} px-3">{{
+                    item.priority }}</span></td>
+                <td>{{ item.avg }} <i class="bi bi-star-fill text-warning small"></i></td>
+                <td class="text-end text-muted small">{{ item.created_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">No recent submissions found.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% elif session.role == 'admin' %}
     <div class="col-md-4">
-      <div class="card-custom h-100 p-4 border-0 shadow-soft glass-panel">
+      <div class="card-custom mb-4 p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-primary-light text-primary p-3 rounded-4">
+            <i class="bi bi-people-fill fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">User Ecosystem</h5>
+        </div>
+        <h2 class="fw-bold text-dark">{{ stats.total_users or 0 }}</h2>
+        <p class="text-muted small">Registered members and target entities.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom mb-4 p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-accent-light text-accent p-3 rounded-4">
+            <i class="bi bi-database-fill-check fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Ledger Records</h5>
+        </div>
+        <h2 class="fw-bold text-dark">{{ stats.total_submissions or 0 }}</h2>
+        <p class="text-muted small">Total immutable records on blockchain.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom mb-4 p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-secondary-light text-secondary p-3 rounded-4">
+            <i class="bi bi-person-gear fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Total Targets</h5>
+        </div>
+        <h2 class="fw-bold text-dark">{{ stats.total_targets or 0 }}</h2>
+        <p class="text-muted small">Entities established for feedback.</p>
+      </div>
+    </div>
+
+    <!-- Recent Activity Table for Admin -->
+    <div class="col-12 mt-4">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 class="fw-bold mb-0"><i class="bi bi-activity me-2"></i>Global Activity Feed</h5>
+          <a href="/admin" class="btn btn-sm btn-outline-primary px-3 rounded-pill">Admin Center</a>
+        </div>
+        {% if stats.recent_items %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light small text-muted">
+              <tr>
+                <th>Submission ID</th>
+                <th>Target Entity</th>
+                <th>Category</th>
+                <th class="text-end">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in stats.recent_items %}
+              <tr>
+                <td><code>{{ item.id[:8] }}...</code></td>
+                <td>{{ item.target }}</td>
+                <td>{{ item.type }}</td>
+                <td class="text-end text-muted small">{{ item.created_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">No platform activity to show.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% elif session.role == 'authority' %}
+    <div class="col-md-4">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-primary-light text-primary p-3 rounded-4">
+            <i class="bi bi-journal-text fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Audit Logs</h5>
+        </div>
+        <h2 class="fw-bold text-dark">{{ stats.total_audit_logs or 0 }}</h2>
+        <p class="text-muted small">Total administrative audit events.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-accent-light text-accent p-3 rounded-4">
+            <i class="bi bi-eye-fill fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Reveal Capacity</h5>
+        </div>
+        <h2 class="fw-bold text-dark">{{ stats.total_submissions or 0 }}</h2>
+        <p class="text-muted small">Total records under jurisdiction.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-secondary-light text-secondary p-3 rounded-4">
+            <i class="bi bi-shield-check fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Compliance</h5>
+        </div>
+        <p class="text-muted small">Adherence to anonymity protocols.</p>
+        <div class="mt-auto pt-3 border-top">
+          <span class="badge bg-success-subtle text-success rounded-pill px-3">
+            <i class="bi bi-patch-check-fill me-1"></i> Verified
+          </span>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- USER Stats (Employee) -->
+    <div class="col-md-4">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-primary-light text-primary p-3 rounded-4">
+            <i class="bi bi-activity fs-4"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Platform Activity</h5>
+        </div>
+        <h2 class="fw-bold text-dark">{{ stats.total_submissions or 0 }}</h2>
+        <p class="text-muted small">Total verified submissions on the system.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
         <div class="d-flex align-items-center gap-3 mb-3">
           <div class="bg-accent-light text-accent p-3 rounded-4">
             <i class="bi bi-incognito fs-4"></i>
           </div>
-          <h5 class="fw-bold mb-0">Anonymity</h5>
+          <h5 class="fw-bold mb-0">My Security</h5>
         </div>
-        <p class="text-muted small">Your identity is cryptographically protected and sealed against the ledger.</p>
+        <p class="text-muted small">Your identity is cryptographically protected.</p>
         <div class="mt-auto pt-3 border-top">
           <span class="badge bg-info-subtle text-info rounded-pill px-3">
             <i class="bi bi-shield-fill-check me-1"></i> Protected
@@ -90,28 +299,29 @@
         </div>
       </div>
     </div>
-
     <div class="col-md-4">
-      <div class="card-custom h-100 p-4 border-0 shadow-soft glass-panel">
+      <div class="card-custom p-4 border-0 shadow-soft glass-panel">
         <div class="d-flex align-items-center gap-3 mb-3">
           <div class="bg-secondary-light text-secondary p-3 rounded-4">
             <i class="bi bi-clock-history fs-4"></i>
           </div>
           <h5 class="fw-bold mb-0">System Time</h5>
         </div>
-        <p class="text-muted small">Current authorized system timestamp for blockchain synchronization.</p>
-        <div class="mt-auto pt-3 border-top text-muted small font-monospace">
-          <span id="current-time">Loading...</span>
-        </div>
+        <div id="current-time" class="h5 fw-bold text-dark font-monospace mb-1">Loading...</div>
+        <p class="text-muted extra-small mb-0">Synchronized Ledger Time</p>
         <script>
-          function updateClock() {
-            document.getElementById('current-time').textContent = new Date().toLocaleString();
-          }
-          setInterval(updateClock, 1000);
-          updateClock();
+          (function () {
+            function updateClock() {
+              const timeEl = document.getElementById('current-time');
+              if (timeEl) timeEl.textContent = new Date().toLocaleTimeString();
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+          })();
         </script>
       </div>
     </div>
+    {% endif %}
   </div>
 
   {% else %}
@@ -122,10 +332,14 @@
         <i class="bi bi-shield-lock-fill fs-1"></i>
       </div>
       <h1 class="landing-title">Trust Through Anonymity</h1>
-      <p class="lead text-muted mb-4 mx-auto" style="max-width: 650px;">
-        A privacy-first, enterprise-grade platform for collecting honest, anonymous feedback within organizations,
-        communities, and services.
+      <p class="lead text-muted mb-4 mx-auto" style="max-width: 800px; text-align: justify; line-height: 1.6;">
+        The **Secure Anonymous Feedback and Complaint System** is an institutional-grade, privacy-centric solution designed to facilitate honest communication within organizations while ensuring absolute data integrity and identity protection. By implementing a **Pure Blockchain Storage** model, the platform establishes the decentralized ledger as the **Single Source of Truth (SSOT)** for all feedback and complaint records, rendering unauthorized tampering or deletion technically impossible.
       </p>
+      <div class="mb-5 mx-auto text-muted small" style="max-width: 800px; text-align: justify;">
+        <p>Built on a modern stack comprising **Flask**, **Supabase (Auth)**, and a **custom Ethereum-based smart contract**, the system addresses the critical challenge of maintaining trust. Every submission is cryptographically secured using **SHA-256 hash-linking** and stored directly on-chain, ensuring that once a record is created, it becomes a permanent part of the audit trail.</p>
+        <p>To balance transparency with accountability, the system features a granular **Role-Based Access Control (RBAC)** framework. Participant identities and sensitive feedback are protected with **AES-256 encryption**, while professional oversight is maintained by Moderators through strictly audited de-anonymization protocols.</p>
+        <p>This comprehensive approach converts feedback from a potential liability into a verified strategic asset, empowering communities and organizations to foster a culture of transparency without compromising individual security.</p>
+      </div>
 
       <div class="d-flex justify-content-center gap-3 mb-5">
         <a href="/login" class="btn btn-primary btn-lg px-5 py-3 shadow-lg rounded-pill">

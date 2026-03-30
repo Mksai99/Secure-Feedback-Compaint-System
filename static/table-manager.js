@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('tableSearch');
     const typeFilter = document.getElementById('typeFilter');
     const ratingFilter = document.getElementById('ratingFilter');
-    const feedbackTable = document.querySelector('.table-hover');
+    const feedbackTable = document.querySelector('.feedback-table');
     
     if (!feedbackTable) return;
 
@@ -23,12 +23,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
-            const typeText = row.querySelector('.badge-fixed-width')?.textContent.toLowerCase() || '';
-            const scoreText = row.querySelector('.col-score .fw-bold')?.textContent || '';
+            const typeValue = row.dataset.type || '';
+            // Fix: Use data-col="score" selector for finding the score value
+            const scoreText = row.querySelector('[data-col="score"]')?.textContent.trim() || '';
             
             const matchesSearch = text.includes(searchTerm);
-            const matchesType = selectedType === 'all' || typeText.includes(selectedType);
-            const matchesRating = selectedRating === 'all' || (scoreText.trim() === selectedRating);
+            const matchesType = selectedType === 'all' || typeValue === selectedType;
+            const matchesRating = selectedRating === 'all' || (scoreText.startsWith(selectedRating));
 
             if (matchesSearch && matchesType && matchesRating) {
                 row.style.display = '';
@@ -51,30 +52,38 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reset all headers
             headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
             
-            // Set new state
-            header.classList.toggle('sort-asc', !isAsc);
-            header.classList.toggle('sort-desc', isAsc);
+            // Toggle logic: If it was ASC, it becomes DESC. If it was DESC or none, it becomes ASC.
+            const newIsAsc = !isAsc;
+            header.classList.add(newIsAsc ? 'sort-asc' : 'sort-desc');
 
             const sortedRows = rows.sort((a, b) => {
-                let aVal = a.querySelector(`[data-col="${column}"]`)?.textContent.trim() || '';
-                let bVal = b.querySelector(`[data-col="${column}"]`)?.textContent.trim() || '';
+                let aEl = a.querySelector(`[data-col="${column}"]`);
+                let bEl = b.querySelector(`[data-col="${column}"]`);
+                
+                let aVal = aEl?.textContent.trim() || '';
+                let bVal = bEl?.textContent.trim() || '';
 
                 // Handle numeric sorting for scores
                 if (column === 'score') {
                     aVal = parseFloat(aVal) || 0;
                     bVal = parseFloat(bVal) || 0;
-                    return isAsc ? bVal - aVal : aVal - bVal;
+                    return newIsAsc ? aVal - bVal : bVal - aVal;
                 }
 
                 // Handle Date sorting
                 if (column === 'date') {
-                    return isAsc ? new Date(bVal) - new Date(aVal) : new Date(aVal) - new Date(bVal);
+                    // Try to parse date strings (e.g. YYYY-MM-DD)
+                    let aDate = new Date(aVal);
+                    let bDate = new Date(bVal);
+                    if (isNaN(aDate.getTime())) aDate = new Date(0);
+                    if (isNaN(bDate.getTime())) bDate = new Date(0);
+                    return newIsAsc ? aDate - bDate : bDate - aDate;
                 }
 
                 // Default string sort
-                return isAsc 
-                    ? bVal.localeCompare(aVal) 
-                    : aVal.localeCompare(bVal);
+                return newIsAsc 
+                    ? aVal.localeCompare(bVal) 
+                    : bVal.localeCompare(aVal);
             });
 
             // Re-append sorted rows

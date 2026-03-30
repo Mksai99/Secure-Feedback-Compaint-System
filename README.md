@@ -1,11 +1,15 @@
-# Secure Anonymous Feedback Platform (Blockchain-Backed)
+# Secure Anonymous Feedback and Complaint System
 
-A privacy-first, enterprise-grade anonymous feedback platform built with **Flask**, **MongoDB**, and **Immutable Hash-Based Blockchain** Technology. This system allows organizations, communities, and services to collect honest, anonymous feedback while ensuring data integrity and strictly controlled identity protection.
+The **Secure Anonymous Feedback and Complaint System** is a next-generation, institutional-grade solution engineered to facilitate honest communication within organizations while ensuring absolute data integrity and identity protection. By implementing a **Pure Blockchain Storage** model, the platform establishes the decentralized ledger as the **Single Source of Truth (SSOT)** for all feedback and complaint records, rendering unauthorized data manipulation or deletion technically impossible.
+
+Built on a modern stack comprising **Flask**, **Supabase (Auth)**, and a **custom Ethereum-based smart contract**, the system addresses the critical challenge of maintaining institutional trust. Every submission is cryptographically secured using **SHA-256 hash-linking** and stored directly on-chain. Participant identities and sensitive descriptions are further protected using **AES-256 (Fernet) encryption**, ensuring that even system administrators cannot unmask contributors.
+
+To balance transparency with accountability, the system features a granular **Role-Based Access Control (RBAC)** framework with four distinct roles: **Participant, Entity, Admin, and Moderator**. Professional oversight is maintained by Moderators, who possess strictly audited authority to initiate identity unmasking only under verified policy necessity, with every action recorded in an immutable audit trail. This comprehensive, blockchain-first approach converts feedback from a potential liability into a verified strategic asset, empowering communities to foster a culture of transparency without compromising individual security.
 
 ## 🚀 Key Features
 
 ### 🔐 Security & Integrity
-- **Blockchain Verification**: Every feedback entry is cryptographically linked to the previous one via SHA-256 hashing. Any unauthorized modification or deletion invalidates the chain, detectable via the Admin Control Center.
+- **Pure Blockchain Storage**: Every feedback entry is stored directly on a decentralized ledger. Unauthorized modification or deletion is technically impossible, with full verification handled by on-chain smart contracts.
 - **Identity Protection**: Participant identities are encrypted using AES-256 (Fernet). Entities and Admins cannot see who provided the feedback.
 - **Controlled De-anonymization**: Only the `Moderator` role can unmask a participant's identity, and **every action is logged** in an immutable audit ledger with a mandatory justification.
 
@@ -25,10 +29,11 @@ The system features four distinct roles:
 
 ## 🛠️ Technology Stack
 - **Backend**: Python (Flask)
-- **Database**: MongoDB (NoSQL)
+- **Authentication**: Supabase (Auth/REST)
+- **Core Storage**: Immutable Blockchain Ledger (Single Source of Truth)
 - **Frontend**: HTML5, CSS3, Bootstrap 5 (Custom "Institutional" Theme)
 - **Cryptography**: `hashlib` (SHA-256), `cryptography` (AES-256 Fernet)
-- **Data Integrity**: Custom Hash-Chain Implementation
+- **Integrity Layer**: Ethereum Smart Contract (Web3)
 
 ---
 
@@ -36,7 +41,8 @@ The system features four distinct roles:
 
 ### Prerequisites
 - Python 3.8+
-- MongoDB (Running locally on default port `27017`)
+- Supabase Project (configured in .env)
+- Local or Remote Ethereum RPC Node (e.g. Ganache or Alchemy)
 
 ### 1. Clone the Repository
 ```bash

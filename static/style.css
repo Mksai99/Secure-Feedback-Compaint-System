@@ -1,5 +1,5 @@
 /* 
-   Secure Anonymous Feedback Platform - Modern Institutional Theme (2024-2026)
+   Secure Feedback and Complaint System - Modern Institutional Theme (2024-2026)
    Designed for Trust, Privacy, and Accountability.
 */
 
@@ -331,25 +331,52 @@ h6 {
     font-size: 1rem;
 }
 
-/* Buttons */
+/* Buttons & Actions */
 .btn {
-    padding: 0.6rem 1.2rem;
-    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    font-weight: 600;
     border-radius: var(--radius-lg);
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+    .header-actions {
+        width: 100%;
+        margin-top: 1rem;
+    }
+    .header-actions .btn {
+        width: 100%;
+    }
 }
 
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    box-shadow: 0 4px 6px -1px rgba(31, 58, 138, 0.2);
+    color: white !important;
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
     background-color: var(--primary-hover);
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-outline-primary {
@@ -362,6 +389,18 @@ h6 {
     background-color: var(--primary-light);
     color: var(--primary-color);
     border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.btn-white {
+    background: white;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+.btn-white:hover {
+    background: var(--bg-body);
+    border-color: var(--text-light);
 }
 
 /* Forms */
@@ -785,6 +824,15 @@ h6 {
     box-shadow: var(--shadow-xl);
 }
 
+.modal.fade .modal-dialog {
+    transition: transform 0.2s ease-out;
+    transform: scale(0.95);
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+}
+
 .modal-header {
     border-bottom: 1px solid var(--border-color);
     padding: 1.5rem;
@@ -798,4 +846,146 @@ h6 {
 .hover-warning:hover {
     background-color: var(--warning-bg) !important;
     color: var(--warning-text) !important;
+}
+
+/* ==========================================================================
+   DYNAMIC RESPONSIVE DESIGN (LAPTOP VS TABLET VS MOBILE)
+   ========================================================================== */
+
+/* --- Tablet & Below (< 992px) --- */
+@media (max-width: 991.98px) {
+    .main-content {
+        padding: 1.5rem;
+    }
+    
+    .filter-bar {
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+    
+    .filter-input-group {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+}
+
+/* --- Mobile Desktop Pivot (< 768px) --- */
+@media (max-width: 767.98px) {
+    :root {
+        --radius-xl: 0.75rem; /* Slightly tighter radii for mobile */
+    }
+
+    .main-content {
+        padding: 0.75rem 0.5rem;
+    }
+
+    /* 🏗️ GLOBAL RESPONSIVE HELPERS */
+    .adaptive-header {
+        text-align: center;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 1.25rem;
+    }
+
+    .card-custom {
+        border-radius: var(--radius-xl);
+        margin-bottom: 1rem;
+        padding: 1.5rem !important; /* Standardize mobile card padding */
+    }
+
+    /* 📊 DYNAMIC TABLE TRANSFORMATION (CARD-VIEW) */
+    /* Only applied to large ledgers using .table-mobile-responsive */
+    .table-mobile-responsive.table-responsive {
+        border: none;
+        overflow-x: visible;
+        margin: 0 -0.5rem; /* Allow cards to breath slightly more */
+    }
+
+    .table-mobile-responsive .table thead {
+        display: none; /* Hide headers on mobile */
+    }
+
+    .table-mobile-responsive .table, 
+    .table-mobile-responsive .table tbody, 
+    .table-mobile-responsive .table tr, 
+    .table-mobile-responsive .table td {
+        display: block;
+        width: 100%;
+    }
+
+    .table-mobile-responsive .table tr {
+        margin-bottom: 1.25rem;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+        padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .table-mobile-responsive .table td {
+        text-align: right;
+        padding: 0.75rem 0;
+        position: relative;
+        border: none;
+        border-bottom: 1px solid var(--primary-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 3.5rem;
+        word-break: break-word; /* Prevent long text from breaking layout */
+    }
+
+    .table-mobile-responsive .table td:last-child {
+        border-bottom: none;
+    }
+
+    /* Insert labels using the data-label attribute added to HTML */
+    .table-mobile-responsive .table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        text-align: left;
+        margin-right: 1.5rem;
+        flex-shrink: 0;
+        max-width: 40%;
+    }
+
+    /* Align specific elements in card view */
+    .table-mobile-responsive .table td .badge {
+        margin-left: auto;
+    }
+
+    .table-mobile-responsive .table td.text-center, 
+    .table-mobile-responsive .table td.text-end {
+        text-align: right !important;
+    }
+
+    /* 📱 Mobile Form Adjustments */
+    .btn {
+        padding: 0.85rem 1.25rem; /* Even larger tap targets */
+    }
+
+    .modal-dialog {
+        margin: 0.5rem;
+        width: calc(100% - 1rem);
+    }
+}
+
+/* --- Extra Small Screens (< 576px) --- */
+@media (max-width: 575.98px) {
+    .brand-title {
+        font-size: 1.1rem;
+    }
+    
+    .alert {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    /* Stack filter selects */
+    .filter-select {
+        flex: 1 1 100%;
+    }
 }
