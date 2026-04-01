@@ -141,7 +141,7 @@
                   "{{ f.description }}"
                 </div>
               </td>
-              <td class="text-muted small hide-md" data-col="date" data-label="Date">
+              <td class="text-muted small hide-md" data-col="date" data-label="Filed On">
                 {{ f.created_at[:10] }}
               </td>
               <td class="pe-4 text-end" data-label="Access">
@@ -160,7 +160,7 @@
                   </span>
                   <button
                     class="btn btn-sm btn-danger shadow-sm px-3 hover-warning d-inline-flex align-items-center fw-bold"
-                    data-bs-toggle="modal" data-bs-target="#revealModal{{ loop.index }}">
+                    data-bs-toggle="modal" data-bs-target="#revealModal{{ f.id }}">
                     <i class="bi bi-key-fill me-2"></i> Unmask
                   </button>
                   {% endif %}
@@ -194,7 +194,7 @@
 {% if feedback_list %}
 {% for f in feedback_list %}
 {% if f.reveal_status != 'revealed' %}
-<div class="modal fade" id="revealModal{{ loop.index }}" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+<div class="modal fade" id="revealModal{{ f.id }}" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content text-start border-0">
       <div class="modal-header bg-danger text-white">
