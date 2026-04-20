@@ -1,4 +1,4 @@
-# 🛡️ Secure Feedback System (SFCS)
+# 🛡️ Secure Feedback & Compaint System (SFCS)
 ### "Where Transparency Meets Absolute Privacy"
 
 [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
