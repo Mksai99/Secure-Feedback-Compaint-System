@@ -1172,4 +1172,4 @@ def authority_audit_logs():
 # ---------- Main ----------
 if __name__ == "__main__":
     # Note: disabled reloader to fix WinError 10038 on Windows + Python 3.13
-    app.run(debug=True, use_reloader=False)
+    app.run(port=5000,debug=True, use_reloader=False)

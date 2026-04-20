@@ -43,7 +43,8 @@
       <div class="filter-input-group">
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" id="tableSearch" class="form-control border-start-0" placeholder="Search by recipient, category, or details...">
+          <input type="text" id="tableSearch" class="form-control border-start-0"
+            placeholder="Search by recipient, category, or details...">
         </div>
       </div>
       <div class="filter-select">
@@ -84,7 +85,9 @@
           </thead>
           <tbody>
             {% for f in feedback_list %}
-            <tr class="{{ 'priority-critical' if f.priority == 'Critical' else 'priority-high' if f.priority == 'High' else '' }}" data-type="{{ 'feedback' if f.category == 'General Feedback' else 'complaint' }}">
+            <tr
+              class="{{ 'priority-critical' if f.priority == 'Critical' else 'priority-high' if f.priority == 'High' else '' }}"
+              data-type="{{ 'feedback' if f.category == 'General Feedback' else 'complaint' }}">
               <td class="ps-4" data-col="target" data-label="Recipient">
                 <div class="d-flex align-items-center gap-2">
                   <div class="bg-light rounded-circle d-flex align-items-center justify-content-center border hide-sm"
@@ -107,16 +110,17 @@
               </td>
               <td data-label="Classification">
                 <span class="fw-bold text-dark small">
-                   {% if f.category == 'General Feedback' %}
-                   <i class="bi bi-tag-fill me-1 text-success"></i> {{ f.category }}
-                   {% else %}
-                   <i class="bi bi-flag-fill me-1 text-danger"></i> {{ f.category }}
-                   {% endif %}
+                  {% if f.category == 'General Feedback' %}
+                  <i class="bi bi-tag-fill me-1 text-success"></i> {{ f.category }}
+                  {% else %}
+                  <i class="bi bi-flag-fill me-1 text-danger"></i> {{ f.category }}
+                  {% endif %}
                 </span>
               </td>
               <td data-col="priority" data-label="Priority">
                 {% if f.category != 'General Feedback' %}
-                <span class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' }} shadow-sm rounded-pill px-3">
+                <span
+                  class="badge {{ 'bg-danger' if f.priority == 'Critical' else 'bg-warning text-dark' if f.priority == 'High' else 'bg-primary' }} shadow-sm rounded-pill px-3">
                   {{ f.priority }}
                 </span>
                 {% else %}
@@ -127,8 +131,9 @@
                 {% if f.category == 'General Feedback' %}
                 <div class="d-flex align-items-center gap-2">
                   <div class="score-progress shadow-sm hide-sm">
-                    <div class="score-fill {{ 'score-fill-low' if f.avg < 2 else 'score-fill-medium' if f.avg < 4 else 'score-fill-high' }}"
-                      style="width: {{ (f.avg / 5) * 100 }}%;"></div>
+                    <div
+                      class="score-fill {{ 'score-fill-low' if (f.avg|float) < 2 else 'score-fill-medium' if (f.avg|float) < 4 else 'score-fill-high' }}"
+                      style="width: {{ (f.avg|float * 20)|round(0) }}%;"></div>
                   </div>
                   <span class="fw-bold small">{{ f.avg }}</span>
                 </div>
