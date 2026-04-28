@@ -1,4 +1,4 @@
-# 🛡️ Secure Feedback & Compaint System (SFCS)
+# 🛡️ Secure Feedback & Complaint System (SFCS)
 ### "Where Transparency Meets Absolute Privacy"
 
 [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -118,6 +118,78 @@ Access the application at `http://127.0.0.1:5000`.
 
 ---
 
+## 🖼️ Screenshots
+
+### 🏠 Home Screen
+The public-facing landing page communicates the platform's core value proposition — anonymity, immutability, and ethical moderation — before a user logs in.
+
+![Home Screen](screenshots/Home_Screen.png)
+
+---
+
+### 🔐 Login
+Role-aware login portal. All sessions are JWT-secured via Supabase Auth. Supports password visibility toggle and "Forgot Password" recovery flow.
+
+![Login](screenshots/Login.png)
+
+---
+
+### 🔑 Password Recovery
+Users can request a secure reset link sent to their registered organizational email address.
+
+![Password Recovery](screenshots/Password_recovery.png)
+
+---
+
+### 📝 Give Feedback (Participant View)
+Participants submit feedback or formal complaints anonymously. They can choose the submission type (General Feedback or Formal Complaint), select a target entity, rate across multiple indicators (Quality, Communication, Timeliness, Reliability), and add a description. All data is encrypted and written to the blockchain.
+
+![Give Feedback](screenshots/Give_Feedback.png)
+
+---
+
+### 📥 Target Feedback View
+Targets (entities receiving feedback) see their inbox of all submissions. Identities of submitters are fully hidden — protected by cryptographic encryption. Only the Authority can unmask them under verified circumstances.
+
+![Target Feedback View](screenshots/Target_Feedback_View.png)
+
+---
+
+### 🖥️ Admin Dashboard
+Administrators manage the full user directory and can view the blockchain feedback ledger. Key functions include adding new Targets and Users (via email invite), and monitoring all submissions marked **IMMUTABLE** on the chain. The dashboard header shows real-time **Blockchain: VERIFIED** and **Session: JWT SECURED** status.
+
+![Admin Dashboard](screenshots/Admin_Dashboard.png)
+
+---
+
+### 🛡️ Authority Dashboard (Oversight Authority Control)
+The Authority role has a specialized control panel for auditing all feedback submissions. Each record displays recipient, type, classification, priority, satisfaction score, a content snippet, and an **ENCRYPTED** access control badge. The **Unmask** button initiates the de-anonymization flow.
+
+![Authority Dashboard](screenshots/Authority_Dashboard.png)
+
+---
+
+### 🔓 Identity Reveal Request
+Before unmasking, the Authority must provide a mandatory **Case Reference / Justification**. A critical warning makes clear that this action is permanently recorded on the blockchain ledger, and unauthorized use may lead to disciplinary action.
+
+![Identity Reveal Request](screenshots/Identity_reveal_request.png)
+
+---
+
+### 🪪 Identity Reveal Result
+Upon successful de-anonymization, the system displays the **Verified User Identity**, confirms **Integrity Verified** status, and shows the recorded justification. The entire transaction is framed with a red "RESTRICTED ACCESS • IDENTITY UNMASKED" banner to underscore the gravity of the action.
+
+![Identity Reveal](screenshots/Identity_reveal.png)
+
+---
+
+### 📋 Ledger Audit (System Audit Trail)
+A transparent, tamper-proof log of all authority actions on the platform. Each entry records the UTC timestamp, auditor name, action type (e.g., `IDENTITY_REVEAL`), the feedback reference ID, and the mandatory justification provided. The chain integrity is confirmed with a **CHAIN VERIFIED** badge.
+
+![Ledger Audit](screenshots/Ledger_Audit.png)
+
+---
+
 ## 🚀 Usage
 
 1. **Admin Login**: Log in using the admin credentials to create Users and Targets.
@@ -125,17 +197,6 @@ Access the application at `http://127.0.0.1:5000`.
 3. **Submit Feedback**: Log in as a 'User' to submit a complaint or feedback. The data is hashed and pushed to the blockchain immediately.
 4. **View Feedback**: Log in as a 'Target' to see what people think of your performance (anonymously).
 5. **Audit**: Log in as 'Authority' to verify the integrity of the chain or unmask an identity if a serious violation is reported.
-
----
-
-## 🖼️ Screenshots / Demo
-
-> [!NOTE]
-> *Screenshots showing the modern institutional UI.*
-
-| Dashboard Overview | Submission Form |
-| :---: | :---: |
-| ![Dashboard Placeholder](https://via.placeholder.com/400x250?text=Institutional+Dashboard) | ![Form Placeholder](https://via.placeholder.com/400x250?text=Anonymous+Entry+Form) |
 
 ---
 
@@ -202,7 +263,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 ## 👤 Author
-**Krishna Sai** 
+**Krishna Sai**
 - GitHub: [@Mksai99](https://github.com/Mksai99)
 - Portfolio: [Check out my work!](https://github.com/Mksai99)
 
